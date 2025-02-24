@@ -1,38 +1,40 @@
 
 using System.Reflection;
-
 using ClosedXML.Excel;
 
 namespace ExcelTransformLoad;
 
 public static class ExcelExtractor
 {
-    //IReadOnlyList<T> ExtractData<T>(string filepath)
-
-    public static IReadOnlyList<T> ExtractData<T>(Stream stream) where T : new()
+    public static IReadOnlyList<T> ExtractDataFromStream<T>(Stream stream) where T : new()
     {
-        var extractedData = new List<T>();
-
+        ArgumentNullException.ThrowIfNull(stream, nameof(stream));
         using var workbook = new XLWorkbook(stream);
         var worksheet = workbook.Worksheet(1);
-        var range = worksheet.RangeUsed();
+        return GetExtractedData<T>(worksheet);
+    }
 
-        if (range is not null)
+    public static IReadOnlyList<T> ExtractDataFromFile<T>(string filepath) where T : new()
+    {
+        ArgumentNullException.ThrowIfNullOrWhiteSpace(filepath, nameof(filepath));
+        using var workbook = new XLWorkbook(filepath);
+        var worksheet = workbook.Worksheet(1);
+        return GetExtractedData<T>(worksheet);
+    }
+
+    private static IReadOnlyList<T> GetExtractedData<T>(IXLWorksheet worksheet) where T : new()
+    {
+        var extractedData = new List<T>();
+        var excelRange = worksheet.RangeUsed();
+
+        if (excelRange is not null)
         {
-            var properties = typeof(T).GetProperties()
-                .Select(p => new
-                {
-                    Property = p,
-                    Attribute = p.GetCustomAttribute<ExcelColumnAttribute>()
-                })
-                .Where(p => p.Attribute != null)
-                .ToList();
-
+            var properties = GetExcelColumnProperties<T>();
             // Cache column lookup
             var columnIndices = worksheet.Row(1).CellsUsed()
                 .ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
 
-            foreach (var row in range.RowsUsed().Skip(1))
+            foreach (var row in excelRange.RowsUsed().Skip(1))
             {
                 var obj = new T();
 
@@ -69,6 +71,7 @@ public static class ExcelExtractor
                 extractedData.Add(obj);
             }
         }
+
         return extractedData.AsReadOnly<T>();
     }
 
@@ -85,6 +88,26 @@ public static class ExcelExtractor
             XLDataType.Blank => null,
             _ => null
         };
+    }
+
+    private static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetExcelColumnProperties<T>()
+    {
+        var propertiesWithAttributes = typeof(T).GetProperties()
+            .Select(p => new
+            {
+                Property = p,
+                Attribute = p.GetCustomAttribute<ExcelColumnAttribute>()
+            })
+            .Where(p => p.Attribute != null)
+            .Select(p => (p.Property, p.Attribute!))
+            .ToList();
+
+        if (propertiesWithAttributes.Count == 0)
+        {
+            throw new InvalidOperationException($"No properties with {nameof(ExcelColumnAttribute)} found on type {typeof(T).Name}");
+        }
+
+        return propertiesWithAttributes;
     }
 
 }
