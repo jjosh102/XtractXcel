@@ -1,5 +1,7 @@
 
+using System.Linq.Expressions;
 using System.Reflection;
+
 using ClosedXML.Excel;
 
 namespace ExcelTransformLoad.Extractor;
@@ -70,12 +72,35 @@ public abstract class ExcelExtractorBase<T> where T : new()
 
     private static Action<T, object?> CreateSetter(PropertyInfo property)
     {
-        return (instance, value) =>
-        {
-            var targetType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
-            var convertedValue = value is not null ? Convert.ChangeType(value, targetType) : null;
-            property.SetValue(instance, convertedValue); // Reflection only happens here ONCE
-        };
+        var instance = Expression.Parameter(typeof(T), "instance");
+        var value = Expression.Parameter(typeof(object), "value");
+
+        var propertyType = property.PropertyType;
+        var targetType = Nullable.GetUnderlyingType(propertyType) ?? propertyType; 
+
+        var isNullable = propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
+        var defaultValue = Expression.Default(propertyType); 
+
+        var convertedValue = Expression.Condition(
+            // Check if value is null
+            Expression.Equal(value, Expression.Constant(null, typeof(object))),  
+            //If is nullable, assign null, else assign default(T)
+            isNullable ? Expression.Constant(null, propertyType) : defaultValue, 
+            // Convert to actual value based on targetType
+            Expression.Convert(
+                Expression.Call(
+                    typeof(Convert).GetMethod(nameof(Convert.ChangeType), [typeof(object), typeof(Type)])!,
+                    value,
+                    Expression.Constant(targetType)
+                ),
+                propertyType
+            )
+        );
+
+        var propertyAccess = Expression.Property(instance, property);
+        var assign = Expression.Assign(propertyAccess, convertedValue);
+
+        return Expression.Lambda<Action<T, object?>>(assign, instance, value).Compile();
     }
 
     private static object? GetCellValue(IXLCell cell)
