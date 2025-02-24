@@ -35,11 +35,6 @@ public static class ExcelExtractor
             // Cache header lookup
             var columnIndices = worksheet.Row(1).CellsUsed()
                 .ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
-            // Cache hot path property setters 
-            var propertySetters = properties.ToDictionary(
-                propInfo => propInfo,
-                propInfo => new Action<T, object>(
-                    (obj, value) => propInfo.Property.SetValue(obj, Convert.ChangeType(value, Nullable.GetUnderlyingType(propInfo.Property.PropertyType) ?? propInfo.Property.PropertyType))));
 
             foreach (var row in excelRange.RowsUsed().Skip(1))
             {
@@ -47,17 +42,17 @@ public static class ExcelExtractor
 
                 foreach (var propInfo in properties)
                 {
-                    foreach (var columnName in propInfo.Attribute?.ColumnNames ?? Array.Empty<string>())
+                    foreach (var columnName in propInfo.Attribute?.ColumnNames ?? [])
                     {
                         if (columnIndices.TryGetValue(columnName, out int colIndex))
                         {
                             var cell = row.Cell(colIndex);
                             var value = GetCellValue(cell);
-
+                            
                             if (value is not null)
-                            {
-                                //Set the  value based on the proper type -> 23 to int, 23.5 to double, "23" to string
-                                propertySetters[propInfo](obj, value);
+                            {  //Set the  value based on the proper type -> 23 to int, 23.5 to double, "23" to string
+                                propInfo.Property.SetValue(obj, Convert.ChangeType(value, Nullable.GetUnderlyingType(propInfo.Property.PropertyType)
+                                                                 ?? propInfo.Property.PropertyType));
                             }
                             else if (Nullable.GetUnderlyingType(propInfo.Property.PropertyType) is not null)
                             {
