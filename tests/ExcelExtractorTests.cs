@@ -181,15 +181,46 @@ namespace ExcelTransformLoad.Tests
             }
         }
 
+        [Fact]
+        public void ExtractData_ShouldHandleMultipleFallbackColumns()
+        {
+            using var stream = new MemoryStream();
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.AddWorksheet("Sheet1");
 
+                // Headers
+                worksheet.Cell(1, 1).Value = "Name";
+                worksheet.Cell(1, 2).Value = "Employee Age";
+                worksheet.Cell(1, 3).Value = "Salary";
+                worksheet.Cell(1, 4).Value = "Join Date";
+                worksheet.Cell(1, 5).Value = "Last Active";
+
+                // Data rows
+                worksheet.Cell(2, 1).Value = "Alice";
+                worksheet.Cell(2, 2).Value = 25;
+                worksheet.Cell(2, 3).Value = 50000.75;
+                worksheet.Cell(2, 4).Value = new DateTime(2020, 5, 1);
+                worksheet.Cell(2, 5).Clear();
+
+                workbook.SaveAs(stream);
+            }
+            stream.Position = 0;
+
+            var extractedData = ExcelExtractor.ExtractDataFromStream<Person>(stream);
+
+            Assert.NotNull(extractedData);
+            Assert.Single(extractedData);
+            Assert.Equal("Alice", extractedData[0].Name);
+        }
 
     }
     public class Person
     {
-        [ExcelColumn("Full Name")]
+        [ExcelColumn("Full Name", "Name", "Employee Name")]
         public string? Name { get; init; }
 
-        [ExcelColumn("Age")]
+        [ExcelColumn("Age", "Employee Age")]
         public int? Age { get; init; }
 
         [ExcelColumn("Salary")]
@@ -198,9 +229,10 @@ namespace ExcelTransformLoad.Tests
         [ExcelColumn("Join Date")]
         public DateTime JoinDate { get; init; }
 
-        [ExcelColumn("Last Active")]
+        [ExcelColumn("Last Active", "Last Activity")]
         public DateTime? LastActive { get; init; }
     }
+
 
     public class NoExcelAttributes
     {

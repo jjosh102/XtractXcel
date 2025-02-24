@@ -1,5 +1,6 @@
 
 using System.Reflection;
+
 using ClosedXML.Excel;
 
 namespace ExcelTransformLoad;
@@ -22,6 +23,7 @@ public static class ExcelExtractor
         return GetExtractedData<T>(worksheet);
     }
 
+
     private static IReadOnlyList<T> GetExtractedData<T>(IXLWorksheet worksheet) where T : new()
     {
         var extractedData = new List<T>();
@@ -30,9 +32,14 @@ public static class ExcelExtractor
         if (excelRange is not null)
         {
             var properties = GetExcelColumnProperties<T>();
-            // Cache column lookup
+            // Cache header lookup
             var columnIndices = worksheet.Row(1).CellsUsed()
                 .ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
+            // Cache hot path property setters 
+            var propertySetters = properties.ToDictionary(
+                propInfo => propInfo,
+                propInfo => new Action<T, object>(
+                    (obj, value) => propInfo.Property.SetValue(obj, Convert.ChangeType(value, Nullable.GetUnderlyingType(propInfo.Property.PropertyType) ?? propInfo.Property.PropertyType))));
 
             foreach (var row in excelRange.RowsUsed().Skip(1))
             {
@@ -40,30 +47,30 @@ public static class ExcelExtractor
 
                 foreach (var propInfo in properties)
                 {
-                    if (columnIndices.TryGetValue(propInfo.Attribute!.ColumnName, out int colIndex))
+                    foreach (var columnName in propInfo.Attribute?.ColumnNames ?? Array.Empty<string>())
                     {
-                        var cell = row.Cell(colIndex);
-                        var value = GetCellValue(cell);
-
-                        var propertyType = propInfo.Property.PropertyType;
-
-                        // Handle nullabe type , get the actual type if it is nullable
-                        var targetType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
-
-                        if (value is not null)
+                        if (columnIndices.TryGetValue(columnName, out int colIndex))
                         {
-                            //Convert the proper value -> 23 to int, 23.5 to double, "23" to string
-                            propInfo.Property.SetValue(obj, Convert.ChangeType(value, targetType));
-                        }
-                        else if (Nullable.GetUnderlyingType(propertyType) is not null)
-                        {
-                            // If nullable and its value is null set it to null
-                            propInfo.Property.SetValue(obj, null);
-                        }
-                        else
-                        {
-                            //Set the default values if not nullable
-                            propInfo.Property.SetValue(obj, Activator.CreateInstance(propertyType));
+                            var cell = row.Cell(colIndex);
+                            var value = GetCellValue(cell);
+
+                            if (value is not null)
+                            {
+                                //Set the  value based on the proper type -> 23 to int, 23.5 to double, "23" to string
+                                propertySetters[propInfo](obj, value);
+                            }
+                            else if (Nullable.GetUnderlyingType(propInfo.Property.PropertyType) is not null)
+                            {
+                                //Set the value to null if nullable
+                                propInfo.Property.SetValue(obj, null);
+                            }
+                            else
+                            {
+                                //Set the default values if not nullable -> bool to false, int to 0, string to ""
+                                propInfo.Property.SetValue(obj, Activator.CreateInstance(propInfo.Property.PropertyType));
+                            }
+
+                            break;
                         }
                     }
                 }
@@ -72,7 +79,7 @@ public static class ExcelExtractor
             }
         }
 
-        return extractedData.AsReadOnly<T>();
+        return extractedData.AsReadOnly();
     }
 
     private static object? GetCellValue(IXLCell cell)
