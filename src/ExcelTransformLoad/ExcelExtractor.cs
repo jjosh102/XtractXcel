@@ -1,6 +1,5 @@
 
 using System.Reflection;
-
 using ClosedXML.Excel;
 
 namespace ExcelTransformLoad;
@@ -23,7 +22,6 @@ public static class ExcelExtractor
         return GetExtractedData<T>(worksheet);
     }
 
-
     private static IReadOnlyList<T> GetExtractedData<T>(IXLWorksheet worksheet) where T : new()
     {
         var extractedData = new List<T>();
@@ -31,43 +29,17 @@ public static class ExcelExtractor
 
         if (excelRange is not null)
         {
-            var properties = GetExcelColumnProperties<T>();
-            // Cache header lookup
-            var columnIndices = worksheet.Row(1).CellsUsed()
-                .ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
+            var mappings = GetColumnMappings<T>(worksheet);
 
             foreach (var row in excelRange.RowsUsed().Skip(1))
             {
                 var obj = new T();
 
-                foreach (var propInfo in properties)
+                foreach (var (colIndex, setter) in mappings)
                 {
-                    foreach (var columnName in propInfo.Attribute?.ColumnNames ?? [])
-                    {
-                        if (columnIndices.TryGetValue(columnName, out int colIndex))
-                        {
-                            var cell = row.Cell(colIndex);
-                            var value = GetCellValue(cell);
-                            
-                            if (value is not null)
-                            {  //Set the  value based on the proper type -> 23 to int, 23.5 to double, "23" to string
-                                propInfo.Property.SetValue(obj, Convert.ChangeType(value, Nullable.GetUnderlyingType(propInfo.Property.PropertyType)
-                                                                 ?? propInfo.Property.PropertyType));
-                            }
-                            else if (Nullable.GetUnderlyingType(propInfo.Property.PropertyType) is not null)
-                            {
-                                //Set the value to null if nullable
-                                propInfo.Property.SetValue(obj, null);
-                            }
-                            else
-                            {
-                                //Set the default values if not nullable -> bool to false, int to 0, string to ""
-                                propInfo.Property.SetValue(obj, Activator.CreateInstance(propInfo.Property.PropertyType));
-                            }
-
-                            break;
-                        }
-                    }
+                    var cell = row.Cell(colIndex);
+                    var value = GetCellValue(cell);
+                    setter(obj, value);
                 }
 
                 extractedData.Add(obj);
@@ -75,6 +47,42 @@ public static class ExcelExtractor
         }
 
         return extractedData.AsReadOnly();
+    }
+
+    private static Dictionary<int, Action<T, object?>> GetColumnMappings<T>(IXLWorksheet worksheet)
+    {
+        // The purpose of this is to precompile property.SetValue to use only ONCE and avoid excessive use of reflection during runtime
+        var mappings = new Dictionary<int, Action<T, object?>>();
+        var properties = GetExcelColumnProperties<T>();
+
+        // Cache header lookup
+        var columnIndices = worksheet.Row(1).CellsUsed()
+            .ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
+
+        foreach (var propInfo in properties)
+        {
+            foreach (var columnName in propInfo.Attribute.ColumnNames)
+            {
+                if (columnIndices.TryGetValue(columnName, out int colIndex))
+                {
+                    var setter = CreateSetter<T>(propInfo.Property);
+                    mappings[colIndex] = setter;
+                    break;
+                }
+            }
+        }
+
+        return mappings;
+    }
+
+    private static Action<T, object?> CreateSetter<T>(PropertyInfo property)
+    {
+        return (instance, value) =>
+        {
+            var targetType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+            var convertedValue = value is not null ? Convert.ChangeType(value, targetType) : null;
+            property.SetValue(instance, convertedValue); // Reflection only happens here ONCE
+        };
     }
 
     private static object? GetCellValue(IXLCell cell)
@@ -94,6 +102,10 @@ public static class ExcelExtractor
 
     private static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetExcelColumnProperties<T>()
     {
+        var properties = typeof(T).GetProperties()
+           .Where(p => p.GetCustomAttribute<ExcelColumnAttribute>() is not null)
+           .ToDictionary(p => p.GetCustomAttribute<ExcelColumnAttribute>()!.ColumnNames.First(), p => p);
+
         var propertiesWithAttributes = typeof(T).GetProperties()
             .Select(p => new
             {
