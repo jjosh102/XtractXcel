@@ -2,34 +2,27 @@
 using System.Reflection;
 using ClosedXML.Excel;
 
-namespace ExcelTransformLoad;
+namespace ExcelTransformLoad.Extractor;
 
-public static class ExcelExtractor
+public abstract class ExcelExtractorBase<T> where T : new()
 {
-    public static IReadOnlyList<T> ExtractDataFromStream<T>(Stream stream) where T : new()
+    protected abstract XLWorkbook GetWorkbook();
+
+    public IReadOnlyList<T> Extract()
     {
-        ArgumentNullException.ThrowIfNull(stream, nameof(stream));
-        using var workbook = new XLWorkbook(stream);
+        using var workbook = GetWorkbook();
         var worksheet = workbook.Worksheet(1);
-        return GetExtractedData<T>(worksheet);
+        return ExtractDataFromWorksheet(worksheet);
     }
 
-    public static IReadOnlyList<T> ExtractDataFromFile<T>(string filepath) where T : new()
-    {
-        ArgumentNullException.ThrowIfNullOrWhiteSpace(filepath, nameof(filepath));
-        using var workbook = new XLWorkbook(filepath);
-        var worksheet = workbook.Worksheet(1);
-        return GetExtractedData<T>(worksheet);
-    }
-
-    private static IReadOnlyList<T> GetExtractedData<T>(IXLWorksheet worksheet) where T : new()
+    private IReadOnlyList<T> ExtractDataFromWorksheet(IXLWorksheet worksheet)
     {
         var extractedData = new List<T>();
         var excelRange = worksheet.RangeUsed();
 
         if (excelRange is not null)
         {
-            var mappings = GetColumnMappings<T>(worksheet);
+            var mappings = GetColumnMappings(worksheet);
 
             foreach (var row in excelRange.RowsUsed().Skip(1))
             {
@@ -49,11 +42,11 @@ public static class ExcelExtractor
         return extractedData.AsReadOnly();
     }
 
-    private static Dictionary<int, Action<T, object?>> GetColumnMappings<T>(IXLWorksheet worksheet)
+    private Dictionary<int, Action<T, object?>> GetColumnMappings(IXLWorksheet worksheet)
     {
-        // The purpose of this is to precompile property.SetValue to use only ONCE and avoid excessive use of reflection during runtime
+        // Precompile property.SetValue to use only ONCE and avoid excessive use of reflection during runtime
         var mappings = new Dictionary<int, Action<T, object?>>();
-        var properties = GetExcelColumnProperties<T>();
+        var properties = GetExcelColumnProperties();
 
         // Cache header lookup
         var columnIndices = worksheet.Row(1).CellsUsed()
@@ -65,7 +58,7 @@ public static class ExcelExtractor
             {
                 if (columnIndices.TryGetValue(columnName, out int colIndex))
                 {
-                    var setter = CreateSetter<T>(propInfo.Property);
+                    var setter = CreateSetter(propInfo.Property);
                     mappings[colIndex] = setter;
                     break;
                 }
@@ -75,7 +68,7 @@ public static class ExcelExtractor
         return mappings;
     }
 
-    private static Action<T, object?> CreateSetter<T>(PropertyInfo property)
+    private static Action<T, object?> CreateSetter(PropertyInfo property)
     {
         return (instance, value) =>
         {
@@ -100,7 +93,7 @@ public static class ExcelExtractor
         };
     }
 
-    private static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetExcelColumnProperties<T>()
+    private static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetExcelColumnProperties()
     {
         var properties = typeof(T).GetProperties()
            .Where(p => p.GetCustomAttribute<ExcelColumnAttribute>() is not null)

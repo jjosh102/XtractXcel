@@ -1,3 +1,6 @@
+
+namespace ExcelTransformLoad.Extractor;
+
 [AttributeUsage(AttributeTargets.Property)]
 public class ExcelColumnAttribute : Attribute
 {

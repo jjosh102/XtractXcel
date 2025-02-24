@@ -2,6 +2,8 @@
 
 using ClosedXML.Excel;
 
+using ExcelTransformLoad.Extractor;
+
 namespace ExcelTransformLoad.Tests
 {
     public class ExcelExtractorTests
@@ -48,21 +50,22 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractData_ShouldParseExcelIntoCorrectTypes()
+        public void ExtractExtractor_ShouldParseExcelIntoCorrectTypes()
         {
             using var stream = CreateTestExcelFile();
-
-            var extractedData = ExcelExtractor.ExtractDataFromStream<Person>(stream);
+            var extractor = new StreamExcelExtractor<Person>(stream);
+            var extractedData = extractor.Extract();
 
             Assert.NotNull(extractedData);
             Assert.Equal(3, extractedData.Count);
         }
 
         [Fact]
-        public void ExtractData_ShouldParseNullableFieldsCorrectly()
+        public void ExtractExtractor_ShouldParseNullableFieldsCorrectly()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = ExcelExtractor.ExtractDataFromStream<Person>(stream);
+            var extractor = new StreamExcelExtractor<Person>(stream);
+            var extractedData = extractor.Extract();
 
             Assert.Null(extractedData[1].Age);
             Assert.Null(extractedData[1].Salary);
@@ -70,20 +73,22 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractData_ShouldParseNegativeAndZeroValuesCorrectly()
+        public void ExtractExtractor_ShouldParseNegativeAndZeroValuesCorrectly()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = ExcelExtractor.ExtractDataFromStream<Person>(stream);
+            var extractor = new StreamExcelExtractor<Person>(stream);
+            var extractedData = extractor.Extract();
 
             Assert.Equal(0, extractedData[2].Age);
             Assert.Equal(-100.50m, extractedData[2].Salary);
         }
 
         [Fact]
-        public void ExtractData_ShouldParseDatesCorrectly()
+        public void ExtractExtractor_ShouldParseDatesCorrectly()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = ExcelExtractor.ExtractDataFromStream<Person>(stream);
+            var extractor = new StreamExcelExtractor<Person>(stream);
+            var extractedData = extractor.Extract();
 
             Assert.Equal(new DateTime(2020, 5, 1), extractedData[0].JoinDate);
             Assert.Equal(new DateTime(2018, 10, 15), extractedData[1].JoinDate);
@@ -92,7 +97,7 @@ namespace ExcelTransformLoad.Tests
 
 
         [Fact]
-        public void ExtractData_ShouldHandleMissingColumns()
+        public void ExtractExtractor_ShouldHandleMissingColumns()
         {
             using var stream = new MemoryStream();
             using (var workbook = new XLWorkbook())
@@ -109,7 +114,8 @@ namespace ExcelTransformLoad.Tests
             }
             stream.Position = 0;
 
-            var extractedData = ExcelExtractor.ExtractDataFromStream<Person>(stream);
+            var extractor = new StreamExcelExtractor<Person>(stream);
+            var extractedData = extractor.Extract();
 
             Assert.NotNull(extractedData);
             Assert.Single(extractedData);
@@ -120,16 +126,23 @@ namespace ExcelTransformLoad.Tests
 
 
         [Fact]
-        public void ExtractData_FromStream_ShouldThrowForNullStream()
+        public void ExtractExtractor_FromStream_ShouldThrowForNullStream()
         {
-            Assert.Throws<ArgumentNullException>(() => ExcelExtractor.ExtractDataFromStream<Person>(null!));
+            Assert.Throws<ArgumentNullException>(() => new StreamExcelExtractor<Person>(null!));
+        }
+
+        [Fact]
+        public void ExtractExtractor_FromFile_ShouldThrowForNullOrWhitespaceFilePath()
+        {
+            Assert.Throws<ArgumentException>(() => new FileExcelExtractor<Person>(string.Empty));
         }
 
         [Fact]
         public void ExtractDataFromStream_ShouldThrowIfNoPropertiesHaveAttributes()
         {
             using var stream = CreateTestExcelFile();
-            var exception = Record.Exception(() => ExcelExtractor.ExtractDataFromStream<NoExcelAttributes>(stream));
+            var extractor = new StreamExcelExtractor<NoExcelAttributes>(stream);
+            var exception = Record.Exception(() => extractor.Extract());
 
             Assert.NotNull(exception);
             Assert.IsType<InvalidOperationException>(exception);
@@ -138,10 +151,11 @@ namespace ExcelTransformLoad.Tests
 
 
         [Fact]
-        public void ExtractData_FromStream_ShouldReturnValidData()
+        public void ExtractExtractor_FromStream_ShouldReturnValidData()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = ExcelExtractor.ExtractDataFromStream<Person>(stream);
+            var extractor = new StreamExcelExtractor<Person>(stream);
+            var extractedData = extractor.Extract();
 
             Assert.NotNull(extractedData);
             Assert.Equal(3, extractedData.Count);
@@ -150,14 +164,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractData_FromFile_ShouldThrowForNullOrWhitespaceFilePath()
-        {
-            Assert.Throws<ArgumentNullException>(() => ExcelExtractor.ExtractDataFromStream<Person>(null!));
-            Assert.Throws<ArgumentException>(() => ExcelExtractor.ExtractDataFromFile<Person>(" "));
-        }
-
-        [Fact]
-        public void ExtractData_FromFile_ShouldReturnValidData()
+        public void ExtractExtractor_FromFile_ShouldReturnValidData()
         {
             var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".xlsx");
             try
@@ -168,7 +175,8 @@ namespace ExcelTransformLoad.Tests
                     stream.CopyTo(fileStream);
                 }
 
-                var extractedData = ExcelExtractor.ExtractDataFromFile<Person>(tempFile);
+                var extractor = new FileExcelExtractor<Person>(tempFile);
+                var extractedData = extractor.Extract();
 
                 Assert.NotNull(extractedData);
                 Assert.Equal(3, extractedData.Count);
@@ -182,7 +190,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractData_ShouldHandleMultipleFallbackColumns()
+        public void ExtractExtractor_ShouldHandleMultipleFallbackColumns()
         {
             using var stream = new MemoryStream();
             using (var workbook = new XLWorkbook())
@@ -207,7 +215,8 @@ namespace ExcelTransformLoad.Tests
             }
             stream.Position = 0;
 
-            var extractedData = ExcelExtractor.ExtractDataFromStream<Person>(stream);
+            var extractor = new StreamExcelExtractor<Person>(stream);
+            var extractedData = extractor.Extract();
 
             Assert.NotNull(extractedData);
             Assert.Single(extractedData);
