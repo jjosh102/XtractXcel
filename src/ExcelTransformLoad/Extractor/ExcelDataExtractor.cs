@@ -6,20 +6,31 @@ using ClosedXML.Excel;
 
 namespace ExcelTransformLoad.Extractor;
 
-public abstract class ExcelExtractorBase<T> where T : new()
+public sealed class ExcelDataExtractor<T> where T : new()
 {
-    protected abstract XLWorkbook GetWorkbook();
+    private readonly ExcelExtractorOptions _options;
 
-    public IReadOnlyList<T> Extract()
+    public ExcelDataExtractor(ExcelExtractorOptions options)
     {
-        using var workbook = GetWorkbook();
-        var worksheet = workbook.Worksheet(1);
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+    }
+    public IReadOnlyList<T> ExtractData()
+    {
+        using var workbook = _options.Source switch
+        {
+            SourceType.FilePath => new XLWorkbook(_options.FilePath!),
+            SourceType.Stream => new XLWorkbook(_options.Stream!),
+            SourceType.None => throw new InvalidOperationException("Either a file path or a stream must be provided."),
+            _ => throw new InvalidOperationException("Invalid source type.")
+        };
+
+        var worksheet = workbook.Worksheet(_options.SheetIndex);
         return ExtractDataFromWorksheet(worksheet);
     }
 
     private IReadOnlyList<T> ExtractDataFromWorksheet(IXLWorksheet worksheet)
     {
-        var extractedData = new List<T>();
+        List<T> extractedData = [];
         var excelRange = worksheet.RangeUsed();
 
         if (excelRange is not null)
@@ -46,8 +57,8 @@ public abstract class ExcelExtractorBase<T> where T : new()
 
     private Dictionary<int, Action<T, object?>> GetColumnMappings(IXLWorksheet worksheet)
     {
-        // Precompile property.SetValue to use only ONCE and avoid excessive use of reflection during runtime
-        var mappings = new Dictionary<int, Action<T, object?>>();
+        //Cache compiled expressions
+        Dictionary<int, Action<T, object?>> mappings = [];
         var properties = GetExcelColumnProperties();
 
         // Cache header lookup
@@ -76,17 +87,17 @@ public abstract class ExcelExtractorBase<T> where T : new()
         var value = Expression.Parameter(typeof(object), "value");
 
         var propertyType = property.PropertyType;
-        var targetType = Nullable.GetUnderlyingType(propertyType) ?? propertyType; 
+        var targetType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
 
         var isNullable = propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
-        var defaultValue = Expression.Default(propertyType); 
+        var defaultValue = Expression.Default(propertyType);
 
         var convertedValue = Expression.Condition(
             // Check if value is null
-            Expression.Equal(value, Expression.Constant(null, typeof(object))),  
+            Expression.Equal(value, Expression.Constant(null, typeof(object))),
             //If is nullable, assign null, else assign default(T)
-            isNullable ? Expression.Constant(null, propertyType) : defaultValue, 
-            // Convert to actual value based on targetType
+            isNullable ? Expression.Constant(null, propertyType) : defaultValue,
+            // Convert to actual value based on type
             Expression.Convert(
                 Expression.Call(
                     typeof(Convert).GetMethod(nameof(Convert.ChangeType), [typeof(object), typeof(Type)])!,
