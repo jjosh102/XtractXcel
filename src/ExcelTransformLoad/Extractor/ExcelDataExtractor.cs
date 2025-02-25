@@ -28,16 +28,17 @@ public sealed class ExcelDataExtractor<T> where T : new()
         return ExtractDataFromWorksheet(worksheet);
     }
 
-    private IReadOnlyList<T> ExtractDataFromWorksheet(IXLWorksheet worksheet)
+    private List<T> ExtractDataFromWorksheet(IXLWorksheet worksheet)
     {
         List<T> extractedData = [];
         var excelRange = worksheet.RangeUsed();
 
         if (excelRange is not null)
         {
+            var excelRows = _options.ReadHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
             var mappings = GetColumnMappings(worksheet);
 
-            foreach (var row in excelRange.RowsUsed().Skip(1))
+            foreach (var row in excelRows)
             {
                 var obj = new T();
 
@@ -52,35 +53,43 @@ public sealed class ExcelDataExtractor<T> where T : new()
             }
         }
 
-        return extractedData.AsReadOnly();
+        return extractedData;
     }
 
     private Dictionary<int, Action<T, object?>> GetColumnMappings(IXLWorksheet worksheet)
     {
-        //Cache compiled expressions
-        Dictionary<int, Action<T, object?>> mappings = [];
-        var properties = GetExcelColumnProperties();
-
-        // Cache header lookup
+        var mappings = new Dictionary<int, Action<T, object?>>();
         var columnIndices = worksheet.Row(1).CellsUsed()
             .ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
 
-        foreach (var propInfo in properties)
+        if (_options.ReadHeader)
         {
-            foreach (var columnName in propInfo.Attribute.ColumnNames)
+            foreach (var propInfo in GetExcelColumnAttributeProperties())
             {
-                if (columnIndices.TryGetValue(columnName, out int colIndex))
+                foreach (var columnName in propInfo.Attribute.ColumnNames)
                 {
-                    var setter = CreateSetter(propInfo.Property);
-                    mappings[colIndex] = setter;
-                    break;
+                    if (columnIndices.TryGetValue(columnName, out int colIndex))
+                    {
+                        var setter = CreateSetter(propInfo.Property);
+                        mappings[colIndex] = setter;
+                        break;
+                    }
                 }
+            }
+        }
+        else
+        {
+            //Only retrieve the number of properties that match the number of used columns
+            var properties = GetProperties().Take(columnIndices.Count + 1);
+            foreach (var (propInfo, columnIndex) in properties.Select((p, i) => (p, i + 1)))
+            {
+                mappings[columnIndex] = CreateSetter(propInfo);
             }
         }
 
         return mappings;
     }
-
+    
     private static Action<T, object?> CreateSetter(PropertyInfo property)
     {
         var instance = Expression.Parameter(typeof(T), "instance");
@@ -129,12 +138,8 @@ public sealed class ExcelDataExtractor<T> where T : new()
         };
     }
 
-    private static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetExcelColumnProperties()
+    private static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetExcelColumnAttributeProperties()
     {
-        var properties = typeof(T).GetProperties()
-           .Where(p => p.GetCustomAttribute<ExcelColumnAttribute>() is not null)
-           .ToDictionary(p => p.GetCustomAttribute<ExcelColumnAttribute>()!.ColumnNames.First(), p => p);
-
         var propertiesWithAttributes = typeof(T).GetProperties()
             .Select(p => new
             {
@@ -145,12 +150,18 @@ public sealed class ExcelDataExtractor<T> where T : new()
             .Select(p => (p.Property, p.Attribute!))
             .ToList();
 
-        if (propertiesWithAttributes.Count == 0)
-        {
-            throw new InvalidOperationException($"No properties with {nameof(ExcelColumnAttribute)} found on type {typeof(T).Name}");
-        }
+        return propertiesWithAttributes.Count == 0
+            ? throw new InvalidOperationException($"No properties with {nameof(ExcelColumnAttribute)} found on type {typeof(T).Name}")
+            : propertiesWithAttributes;
+    }
 
-        return propertiesWithAttributes;
+    private static List<PropertyInfo> GetProperties()
+    {
+        var properties = typeof(T).GetProperties();
+
+        return properties.Length > 0
+            ? properties.ToList()
+            : throw new InvalidOperationException($"No properties found on type {typeof(T).Name}");
     }
 
 }
