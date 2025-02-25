@@ -10,7 +10,6 @@ public class ExcelExtractorOptions
     
     public SourceType Source { get; private set; } = SourceType.None;
     
-  
     public string? FilePath
     {
         get => _filePath;
