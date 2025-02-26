@@ -31,7 +31,7 @@ public class Person
 }
 ```
 
-The `ExcelColumn` attribute maps Excel column headers to C# properties. You can provide multiple alternative names for each column to support different Excel formats.
+The `ExcelColumn` attribute maps Excel column headers to C# properties. Ever had someone from HR send you reports where column names change daily? "EMPLOYEE NAME" on Monday, "Employee Name" on Tuesday, and "employee_name" on Wednesday? No problem! You can map multiple possible column names to handle these situations gracefully.
 
 #### 2. Extract data from Excel
 
