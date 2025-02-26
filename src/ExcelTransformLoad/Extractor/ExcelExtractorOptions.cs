@@ -50,8 +50,4 @@ public class ExcelExtractorOptions
         }
     }
     
-    public bool IsValid()
-    {
-        return Source != SourceType.None;
-    }
 }

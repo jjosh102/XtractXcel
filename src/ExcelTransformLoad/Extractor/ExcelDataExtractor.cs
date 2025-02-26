@@ -14,6 +14,7 @@ public sealed class ExcelDataExtractor<T> where T : new()
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
+    
     public IReadOnlyList<T> ExtractData()
     {
         using var workbook = _options.Source switch
