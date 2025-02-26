@@ -5,7 +5,7 @@ namespace ExcelTransformLoad.Extractor;
 public class ExcelExtractor<T> where T : new()
 {
     private readonly ExcelExtractorOptions _options = new();
-    private Func<IXLRangeRow, T>? RowMappingDelegate { get; set; }
+    private Func<IXLRangeRow, T>? _rowMappingDelegate;
     private bool _isSourceSet = false;
     private bool _isManualMappingSet = false;
 
@@ -26,7 +26,7 @@ public class ExcelExtractor<T> where T : new()
     public ExcelExtractor<T> WithManualMapping(Func<IXLRangeRow, T> defineRowMapping)
     {
         EnsureSourceNotSet();
-        RowMappingDelegate = defineRowMapping;
+        _rowMappingDelegate = defineRowMapping;
         _isManualMappingSet = true;
         return this;
     }
@@ -68,14 +68,13 @@ public class ExcelExtractor<T> where T : new()
 
         var extractor = new ExcelDataExtractor<T>(_options);
 
-        if (_isManualMappingSet && RowMappingDelegate is null)
+        if (_isManualMappingSet && _rowMappingDelegate is null)
         {
             throw new InvalidOperationException("A row mapping function must be provided when manual mapping is enabled.");
         }
 
-        return _isManualMappingSet ? extractor.ExtractData(RowMappingDelegate!) : extractor.ExtractData();
+        return _isManualMappingSet ? extractor.ExtractData(_rowMappingDelegate!) : extractor.ExtractData();
     }
-
 
     private void EnsureSourceNotSet()
     {
