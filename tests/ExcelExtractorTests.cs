@@ -1,11 +1,5 @@
-﻿using System;
-using System.IO;
-
-using ClosedXML.Excel;
-
+﻿using ClosedXML.Excel;
 using ExcelTransformLoad.Extractor;
-
-using Xunit;
 
 namespace ExcelTransformLoad.Tests
 {
@@ -44,6 +38,32 @@ namespace ExcelTransformLoad.Tests
                 worksheet.Cell(4, 3).Value = -100.50;
                 worksheet.Cell(4, 4).Value = new DateTime(2022, 1, 1);
                 worksheet.Cell(4, 5).Clear();
+
+                workbook.SaveAs(stream);
+            }
+
+            stream.Position = 0;
+            return stream;
+        }
+
+        private static MemoryStream CreateTestExcelFileWithNoHeader()
+        {
+            var stream = new MemoryStream();
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.AddWorksheet("Sheet1");
+
+                worksheet.Cell(1, 1).Value = "Dave";
+                worksheet.Cell(1, 2).Value = 42;
+                worksheet.Cell(1, 3).Value = 75000.50;
+                worksheet.Cell(1, 4).Value = new DateTime(2019, 3, 15);
+                worksheet.Cell(1, 5).Value = new DateTime(2024, 1, 10);
+
+                worksheet.Cell(2, 1).Value = "Eve";
+                worksheet.Cell(2, 2).Value = 38;
+                worksheet.Cell(2, 3).Value = 82000.25;
+                worksheet.Cell(2, 4).Value = new DateTime(2020, 7, 22);
+                worksheet.Cell(2, 5).Value = new DateTime(2024, 2, 5);
 
                 workbook.SaveAs(stream);
             }
@@ -316,27 +336,7 @@ namespace ExcelTransformLoad.Tests
         [Fact]
         public void ExtractExtractor_ShouldParseExcelWithoutHeaders()
         {
-            using var stream = new MemoryStream();
-            using (var workbook = new XLWorkbook())
-            {
-                var worksheet = workbook.AddWorksheet("Sheet1");
-
-                worksheet.Cell(1, 1).Value = "Dave";
-                worksheet.Cell(1, 2).Value = 42;
-                worksheet.Cell(1, 3).Value = 75000.50;
-                worksheet.Cell(1, 4).Value = new DateTime(2019, 3, 15);
-                worksheet.Cell(1, 5).Value = new DateTime(2024, 1, 10);
-
-                worksheet.Cell(2, 1).Value = "Eve";
-                worksheet.Cell(2, 2).Value = 38;
-                worksheet.Cell(2, 3).Value = 82000.25;
-                worksheet.Cell(2, 4).Value = new DateTime(2020, 7, 22);
-                worksheet.Cell(2, 5).Value = new DateTime(2024, 2, 5);
-
-                workbook.SaveAs(stream);
-            }
-
-            stream.Position = 0;
+            using var stream = CreateTestExcelFileWithNoHeader();
 
             var extractedData = new ExcelExtractor<PersonNoHeader>()
                 .WithHeader(false)
@@ -368,10 +368,10 @@ namespace ExcelTransformLoad.Tests
             {
                 var worksheet = workbook.AddWorksheet("Sheet1");
                 worksheet.Cell(1, 1).Value = "Frank";
-                worksheet.Cell(1, 2).Clear(); 
+                worksheet.Cell(1, 2).Clear();
                 worksheet.Cell(1, 3).Value = 65000.75;
                 worksheet.Cell(1, 4).Value = new DateTime(2021, 5, 10);
-                worksheet.Cell(1, 5).Clear(); 
+                worksheet.Cell(1, 5).Clear();
 
                 workbook.SaveAs(stream);
             }
@@ -392,10 +392,210 @@ namespace ExcelTransformLoad.Tests
             Assert.Equal(new DateTime(2021, 5, 10), extractedData[0].JoinDate);
             Assert.Null(extractedData[0].LastActive);
         }
+        [Fact]
+        public void WithManualMapping_ShouldExtractDataCorrectly()
+        {
+            using var stream = CreateTestExcelFile();
+            var extractedData = new ExcelExtractor<Person>()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .WithManualMapping(row => new Person
+                {
+                    Name = row.Cell(1).GetString(),
+                    Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
+                    Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
+                    JoinDate = row.Cell(4).GetDateTime(),
+                    LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
+                })
+                .FromStream(stream)
+                .Extract();
 
-        
+            Assert.NotNull(extractedData);
+            Assert.Equal(3, extractedData.Count);
+            Assert.Equal("Alice", extractedData[0].Name);
+            Assert.Equal(25, extractedData[0].Age);
+            Assert.Equal(50000.75m, extractedData[0].Salary);
+            Assert.Equal(new DateTime(2020, 5, 1), extractedData[0].JoinDate);
+            Assert.Null(extractedData[0].LastActive);
+
+            Assert.Equal("Bob", extractedData[1].Name);
+            Assert.Null(extractedData[1].Age);
+            Assert.Null(extractedData[1].Salary);
+            Assert.Equal(new DateTime(2018, 10, 15), extractedData[1].JoinDate);
+            Assert.Equal(new DateTime(2023, 3, 10), extractedData[1].LastActive);
+        }
+
+        [Fact]
+        public void WithManualMapping_ShouldWorkWithoutHeader()
+        {
+            using var stream = CreateTestExcelFileWithNoHeader();
+            var extractedData = new ExcelExtractor<PersonNoHeader>()
+                .WithHeader(false)
+                .WithSheetIndex(1)
+                .WithManualMapping(row => new PersonNoHeader
+                {
+                    Name = row.Cell(1).GetString(),
+                    Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
+                    Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
+                    JoinDate = row.Cell(4).GetDateTime(),
+                    LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
+                })
+                .FromStream(stream)
+                .Extract();
+
+            Assert.NotNull(extractedData);
+            Assert.Equal(2, extractedData.Count);
+            Assert.Equal("Dave", extractedData[0].Name);
+        }
+
+        [Fact]
+        public void WithManualMapping_ShouldTransformDataDuringExtraction()
+        {
+            using var stream = CreateTestExcelFile();
+            var extractedData = new ExcelExtractor<Person>()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .WithManualMapping(row => new Person
+                {
+                    Name = row.Cell(1).GetString().ToUpper(),
+                    Age = !row.Cell(2).IsEmpty() ? (int)(row.Cell(2).GetDouble() * 2) : null,
+                    Salary = !row.Cell(3).IsEmpty() ? (decimal)(row.Cell(3).GetDouble() / 2) : null,
+                    JoinDate = row.Cell(4).GetDateTime().AddYears(1),
+                    LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : DateTime.Now
+                })
+                .FromStream(stream)
+                .Extract();
+
+            Assert.NotNull(extractedData);
+            Assert.Equal(3, extractedData.Count);
+            Assert.Equal("ALICE", extractedData[0].Name);
+            Assert.Equal(50, extractedData[0].Age);
+            Assert.Equal(25000.375m, extractedData[0].Salary);
+            Assert.Equal(new DateTime(2021, 5, 1), extractedData[0].JoinDate);
+            Assert.NotNull(extractedData[0].LastActive);
+        }
+
+        [Fact]
+        public void WithManualMapping_ShouldCreateDifferentObjectType()
+        {
+            using var stream = CreateTestExcelFile();
+            var extractedData = new ExcelExtractor<CustomPerson>()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .WithManualMapping(row => new CustomPerson
+                {
+                    FullName = row.Cell(1).GetString(),
+                    YearsOld = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : 0,
+                    AnnualSalary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : 0,
+                    StartDate = row.Cell(4).GetDateTime(),
+                    IsActive = !row.Cell(5).IsEmpty()
+                })
+                .FromStream(stream)
+                .Extract();
+
+            Assert.NotNull(extractedData);
+            Assert.Equal(3, extractedData.Count);
+            Assert.Equal("Alice", extractedData[0].FullName);
+            Assert.Equal(25, extractedData[0].YearsOld);
+            Assert.Equal(50000.75m, extractedData[0].AnnualSalary);
+            Assert.Equal(new DateTime(2020, 5, 1), extractedData[0].StartDate);
+            Assert.False(extractedData[0].IsActive);
+
+            Assert.True(extractedData[1].IsActive);
+        }
+
+        [Fact]
+        public void WithManualMapping_ShouldHandleEmptyWorksheet()
+        {
+            using var stream = new MemoryStream();
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.AddWorksheet("Sheet1");
+                workbook.SaveAs(stream);
+            }
+            stream.Position = 0;
+
+            var extractedData = new ExcelExtractor<Person>()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .WithManualMapping(row => new Person
+                {
+                    Name = row.Cell(1).GetString(),
+                    Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null
+                })
+                .FromStream(stream)
+                .Extract();
+
+            Assert.NotNull(extractedData);
+            Assert.Empty(extractedData);
+        }
+
+        [Fact]
+        public void WithManualMapping_ShouldSelectSpecificColumns()
+        {
+            using var stream = CreateTestExcelFile();
+            var extractedData = new ExcelExtractor<Person>()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .WithManualMapping(row => new Person
+                {
+                    // Only map name and join date
+                    Name = row.Cell(1).GetString(),
+                    JoinDate = row.Cell(4).GetDateTime()
+                })
+                .FromStream(stream)
+                .Extract();
+
+            Assert.NotNull(extractedData);
+            Assert.Equal(3, extractedData.Count);
+            Assert.Equal("Alice", extractedData[0].Name);
+            Assert.Equal(new DateTime(2020, 5, 1), extractedData[0].JoinDate);
+            Assert.Null(extractedData[0].Age);
+            Assert.Null(extractedData[0].Salary);
+            Assert.Null(extractedData[0].LastActive);
+        }
+
+        [Fact]
+        public void WithManualMapping_ShouldThrowWhenExtractCalledWithoutDelegate()
+        {
+            using var stream = CreateTestExcelFile();
+            var extractor = new ExcelExtractor<Person>()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .WithManualMapping(null!)
+                .FromStream(stream);
+
+            var exception = Record.Exception(() => extractor.Extract());
+            Assert.NotNull(exception);
+            Assert.IsType<InvalidOperationException>(exception);
+            Assert.Equal("A row mapping function must be provided when manual mapping is enabled.", exception.Message);
+        }
+
+        [Fact]
+        public void WithManualMapping_ShouldIgnoreAttributeMappings()
+        {
+            using var stream = CreateTestExcelFile();
+            var extractedData = new ExcelExtractor<NoExcelAttributes>()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .WithManualMapping(row => new NoExcelAttributes
+                {
+                    Name = row.Cell(1).GetString(),
+                    Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
+                    Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
+                    JoinDate = row.Cell(4).GetDateTime(),
+                    LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
+                })
+                .FromStream(stream)
+                .Extract();
+
+            Assert.NotNull(extractedData);
+            Assert.Equal(3, extractedData.Count);
+            Assert.Equal("Alice", extractedData[0].Name);
+            Assert.Equal(25, extractedData[0].Age);
+        }
+
     }
-
 
 
     public class Person
@@ -432,5 +632,14 @@ namespace ExcelTransformLoad.Tests
         public decimal? Salary { get; init; }
         public DateTime JoinDate { get; init; }
         public DateTime? LastActive { get; init; }
+    }
+
+    public class CustomPerson
+    {
+        public string FullName { get; init; } = string.Empty;
+        public int YearsOld { get; init; }
+        public decimal AnnualSalary { get; init; }
+        public DateTime StartDate { get; init; }
+        public bool IsActive { get; init; }
     }
 }

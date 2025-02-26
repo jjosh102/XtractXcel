@@ -14,8 +14,11 @@ public sealed class ExcelDataExtractor<T> where T : new()
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
-    
-    public IReadOnlyList<T> ExtractData()
+    public List<T> ExtractData() => ExtractData(ExtractDataFromWorksheet);
+
+    public List<T> ExtractData(Func<IXLRangeRow, T> mapRow) => ExtractData(worksheet => ExtractDataFromWorksheet(worksheet, mapRow));
+
+    private List<T> ExtractData(Func<IXLWorksheet, List<T>> extractFunc)
     {
         using var workbook = _options.Source switch
         {
@@ -26,7 +29,7 @@ public sealed class ExcelDataExtractor<T> where T : new()
         };
 
         var worksheet = workbook.Worksheet(_options.SheetIndex);
-        return ExtractDataFromWorksheet(worksheet);
+        return extractFunc(worksheet);
     }
 
     private List<T> ExtractDataFromWorksheet(IXLWorksheet worksheet)
@@ -34,30 +37,46 @@ public sealed class ExcelDataExtractor<T> where T : new()
         List<T> extractedData = [];
         var excelRange = worksheet.RangeUsed();
 
-        if (excelRange is not null)
+        if (excelRange is null)
         {
-            var excelRows = _options.ReadHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
-            var mappings = GetColumnMappings(worksheet);
+            return [];
+        }
 
-            foreach (var row in excelRows)
+        var excelRows = _options.ReadHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
+        var mappings = BuildAttributeMappings(worksheet);
+
+        foreach (var row in excelRows)
+        {
+            var obj = new T();
+
+            foreach (var (colIndex, setter) in mappings)
             {
-                var obj = new T();
-
-                foreach (var (colIndex, setter) in mappings)
-                {
-                    var cell = row.Cell(colIndex);
-                    var value = GetCellValue(cell);
-                    setter(obj, value);
-                }
-
-                extractedData.Add(obj);
+                var cell = row.Cell(colIndex);
+                var value = GetCellValue(cell);
+                setter(obj, value);
             }
+
+            extractedData.Add(obj);
         }
 
         return extractedData;
     }
 
-    private Dictionary<int, Action<T, object?>> GetColumnMappings(IXLWorksheet worksheet)
+    private List<T> ExtractDataFromWorksheet(IXLWorksheet worksheet, Func<IXLRangeRow, T> mapRow)
+    {
+        var excelRange = worksheet.RangeUsed();
+
+        if (excelRange is null)
+        {
+            return [];
+        }
+
+        var excelRows = _options.ReadHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
+
+        return excelRows.Select(mapRow).ToList();
+    }
+
+    private Dictionary<int, Action<T, object?>> BuildAttributeMappings(IXLWorksheet worksheet)
     {
         var mappings = new Dictionary<int, Action<T, object?>>();
         var columnIndices = worksheet.Row(1).CellsUsed()
@@ -90,7 +109,7 @@ public sealed class ExcelDataExtractor<T> where T : new()
 
         return mappings;
     }
-    
+
     private static Action<T, object?> CreateSetter(PropertyInfo property)
     {
         var instance = Expression.Parameter(typeof(T), "instance");
