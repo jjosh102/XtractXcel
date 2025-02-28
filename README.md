@@ -5,27 +5,26 @@ ExcelTransformLoad is a simple .NET library for extracting data from Excel files
 
 ## Getting Started
 
-### Installation(Coming soon)
+### Installation (Coming soon)
 
 
 ### Basic Usage
 
 #### 1. Define your model with ExcelColumn attributes
 ```csharp
-public class Person
-{
+public class Person {
     [ExcelColumn("Full Name", "Name", "Employee Name")]
     public string? Name { get; init; }
-
+    
     [ExcelColumn("Age", "Employee Age")]
     public int? Age { get; init; }
-
+    
     [ExcelColumn("Salary")]
     public decimal? Salary { get; init; }
-
+    
     [ExcelColumn("Join Date")]
     public DateTime JoinDate { get; init; }
-
+    
     [ExcelColumn("Last Active", "Last Activity")]
     public DateTime? LastActive { get; init; }
 }
@@ -48,8 +47,7 @@ var people = new ExcelExtractor<Person>()
     .Extract();                     // Perform the extraction
 
 // Use the extracted data
-foreach (var person in people)
-{
+foreach (var person in people) {
     Console.WriteLine($"Name: {person.Name}, Age: {person.Age}, Joined: {person.JoinDate:d}");
 }
 ```
@@ -70,8 +68,7 @@ For Excel files without headers, you can use the column indices instead:
 
 ```csharp
 // Define a model without header mapping
-public class PersonNoHeader
-{
+public class PersonNoHeader {
     // Properties will be mapped by column position (1-based)
     public string? Name { get; init; }
     public int? Age { get; init; }
@@ -85,6 +82,67 @@ var people = new ExcelExtractor<PersonNoHeader>()
     .WithHeader(false)              // Specify that there's no header row
     .WithSheetIndex(1)
     .FromFile("employees-no-header.xlsx")
+    .Extract();
+```
+
+#### Manual Mapping
+For more control over the extraction process, you can use manual mapping with a custom function:
+
+```csharp
+// Extract data with manual mapping
+var people = new ExcelExtractor<Person>()
+    .WithHeader(true)
+    .WithSheetIndex(1)
+    .WithManualMapping(row => new Person
+    {
+        Name = row.Cell(1).GetString(),
+        Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
+        Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
+        JoinDate = row.Cell(4).GetDateTime(),
+        LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
+    })
+    .FromFile("employees.xlsx")
+    .Extract();
+```
+
+Manual mapping provides several benefits:
+- Direct access to the underlying cell data
+- Ability to transform data during extraction
+- Custom handling of empty cells
+- Freedom to map to differently structured objects
+- Works with or without headers
+
+Example of transforming data during extraction:
+```csharp
+var people = new ExcelExtractor<Person>()
+    .WithHeader(true)
+    .WithSheetIndex(1)
+    .WithManualMapping(row => new Person
+    {
+        Name = row.Cell(1).GetString().ToUpper(), // Convert name to uppercase
+        Age = !row.Cell(2).IsEmpty() ? (int)(row.Cell(2).GetDouble() * 2) : null, // Double the age
+        Salary = !row.Cell(3).IsEmpty() ? (decimal)(row.Cell(3).GetDouble() / 2) : null, // Halve the salary
+        JoinDate = row.Cell(4).GetDateTime().AddYears(1), // Add a year
+        LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : DateTime.Now // Default to now if empty
+    })
+    .FromFile("employees.xlsx")
+    .Extract();
+```
+
+Example of mapping to a different object type:
+```csharp
+var customPeople = new ExcelExtractor<CustomPerson>()
+    .WithHeader(true)
+    .WithSheetIndex(1)
+    .WithManualMapping(row => new CustomPerson
+    {
+        FullName = row.Cell(1).GetString(),
+        YearsOld = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : 0,
+        AnnualSalary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : 0,
+        StartDate = row.Cell(4).GetDateTime(),
+        IsActive = !row.Cell(5).IsEmpty()
+    })
+    .FromFile("employees.xlsx")
     .Extract();
 ```
 
@@ -115,7 +173,41 @@ var data = new ExcelExtractor<PersonNoHeader>()
     .Extract();
 ```
 
-## Why Use ?
+### Using Manual Mapping for Selective Column Reading
+```csharp
+// Read only specific columns
+var partialData = new ExcelExtractor<Person>()
+    .WithHeader(true)
+    .WithSheetIndex(1)
+    .WithManualMapping(row => new Person
+    {
+        // Only map name and join date
+        Name = row.Cell(1).GetString(),
+        JoinDate = row.Cell(4).GetDateTime()
+    })
+    .FromFile("employees.xlsx")
+    .Extract();
+```
+
+## Performance Considerations
+
+Based on benchmarks, manual mapping provides a small performance advantage over attribute-based mapping, especially for smaller files:
+
+| Method                               | Mean       | Error     | StdDev    | Gen0      | Gen1      | Gen2      | Allocated |
+|------------------------------------- |-----------:|----------:|----------:|----------:|----------:|----------:|----------:|
+| SmallFile_AttributeMapping           |   3.330 ms | 0.0482 ms | 0.0403 ms |  140.6250 |   46.8750 |         - |   1.89 MB |
+| SmallFile_ManualMapping              |   2.740 ms | 0.0197 ms | 0.0154 ms |  148.4375 |   46.8750 |         - |   1.86 MB |
+| SmallFile_ManualMapping_NoAttributes |   2.766 ms | 0.0550 ms | 0.0540 ms |  148.4375 |   46.8750 |         - |   1.86 MB |
+| MediumFile_AttributeMapping          |  16.327 ms | 0.3255 ms | 0.5615 ms | 1000.0000 |  727.2727 |   90.9091 |  13.66 MB |
+| MediumFile_ManualMapping             |  15.806 ms | 0.3136 ms | 0.5492 ms | 1000.0000 |  700.0000 |  100.0000 |  13.67 MB |
+| LargeFile_AttributeMapping           | 177.912 ms | 3.4578 ms | 4.8473 ms | 9000.0000 | 4000.0000 | 2000.0000 | 129.31 MB |
+| LargeFile_ManualMapping              | 183.702 ms | 3.1083 ms | 2.7555 ms | 9000.0000 | 5000.0000 | 2000.0000 | 129.61 MB |
+| ManyColumns_AttributeMapping         |  27.877 ms | 0.5434 ms | 0.5815 ms | 1444.4444 |  888.8889 |  222.2222 |  18.74 MB |
+| ManyColumns_ManualMapping            |  27.434 ms | 0.4533 ms | 0.4241 ms | 1444.4444 |  888.8889 |  222.2222 |  18.69 MB |
+
+Note: Using manual mapping with a class that already has attribute properties has little gain in terms of performance. Memory allocation is roughly similar for both approaches. Choose the approach that works best for your specific use case and code organization preferences.
+
+## Why Use ExcelTransformLoad?
 If you're already using [ClosedXML](https://github.com/ClosedXML/ClosedXML) or similar libraries extensively, this one might not add much extra value. But if you're looking for a simple way to read an Excel file and load it into your objects without any hassle, this library is worth checking out!
 
-It's user-friendly and follows a fluent pattern, making it easy to define your options in a natural, intuitive way. 
+It's user-friendly and follows a fluent pattern, making it easy to define your options in a natural, intuitive way.
