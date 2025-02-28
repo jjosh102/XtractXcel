@@ -105,47 +105,6 @@ var people = new ExcelExtractor<Person>()
     .Extract();
 ```
 
-Manual mapping provides several benefits:
-- Direct access to the underlying cell data
-- Ability to transform data during extraction
-- Custom handling of empty cells
-- Freedom to map to differently structured objects
-- Works with or without headers
-
-Example of transforming data during extraction:
-```csharp
-var people = new ExcelExtractor<Person>()
-    .WithHeader(true)
-    .WithSheetIndex(1)
-    .WithManualMapping(row => new Person
-    {
-        Name = row.Cell(1).GetString().ToUpper(), // Convert name to uppercase
-        Age = !row.Cell(2).IsEmpty() ? (int)(row.Cell(2).GetDouble() * 2) : null, // Double the age
-        Salary = !row.Cell(3).IsEmpty() ? (decimal)(row.Cell(3).GetDouble() / 2) : null, // Halve the salary
-        JoinDate = row.Cell(4).GetDateTime().AddYears(1), // Add a year
-        LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : DateTime.Now // Default to now if empty
-    })
-    .FromFile("employees.xlsx")
-    .Extract();
-```
-
-Example of mapping to a different object type:
-```csharp
-var customPeople = new ExcelExtractor<CustomPerson>()
-    .WithHeader(true)
-    .WithSheetIndex(1)
-    .WithManualMapping(row => new CustomPerson
-    {
-        FullName = row.Cell(1).GetString(),
-        YearsOld = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : 0,
-        AnnualSalary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : 0,
-        StartDate = row.Cell(4).GetDateTime(),
-        IsActive = !row.Cell(5).IsEmpty()
-    })
-    .FromFile("employees.xlsx")
-    .Extract();
-```
-
 ## Examples
 
 ### Processing Employee Data with Headers
@@ -191,7 +150,7 @@ var partialData = new ExcelExtractor<Person>()
 
 ## Performance Considerations
 
-Based on benchmarks, manual mapping provides a small performance advantage over attribute-based mapping, especially for smaller files:
+Based on benchmarks, manual mapping provides a small performance advantage over attribute-based mapping. Choose the approach that works best for your specific use case and code organization preferences:
 
 | Method                               | Mean       | Error     | StdDev    | Gen0      | Gen1      | Gen2      | Allocated |
 |------------------------------------- |-----------:|----------:|----------:|----------:|----------:|----------:|----------:|
@@ -205,7 +164,6 @@ Based on benchmarks, manual mapping provides a small performance advantage over 
 | ManyColumns_AttributeMapping         |  27.877 ms | 0.5434 ms | 0.5815 ms | 1444.4444 |  888.8889 |  222.2222 |  18.74 MB |
 | ManyColumns_ManualMapping            |  27.434 ms | 0.4533 ms | 0.4241 ms | 1444.4444 |  888.8889 |  222.2222 |  18.69 MB |
 
-Note: Using manual mapping with a class that already has attribute properties has little gain in terms of performance. Memory allocation is roughly similar for both approaches. Choose the approach that works best for your specific use case and code organization preferences.
 
 ## Why Use ExcelTransformLoad?
 If you're already using [ClosedXML](https://github.com/ClosedXML/ClosedXML) or similar libraries extensively, this one might not add much extra value. But if you're looking for a simple way to read an Excel file and load it into your objects without any hassle, this library is worth checking out!
