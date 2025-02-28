@@ -67,10 +67,7 @@ internal sealed class ExcelDataExtractor<T> where T : new()
     {
         var excelRange = worksheet.RangeUsed();
 
-        if (excelRange is null)
-        {
-            return [];
-        }
+        if (excelRange is null) return [];
 
         var excelRows = _options.ReadHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
 

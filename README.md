@@ -114,3 +114,8 @@ var data = new ExcelExtractor<PersonNoHeader>()
     .FromFile("data.xlsx")
     .Extract();
 ```
+
+## Why Use ?
+If you're already using [ClosedXML](https://github.com/ClosedXML/ClosedXML) or similar libraries extensively, this one might not add much extra value. But if you're looking for a simple way to read an Excel file and load it into your objects without any hassle, this library is worth checking out!
+
+It's user-friendly and follows a fluent pattern, making it easy to define your options in a natural, intuitive way. 

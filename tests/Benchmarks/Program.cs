@@ -2,9 +2,6 @@
 using BenchmarkDotNet.Running;
 using ClosedXML.Excel;
 using ExcelTransformLoad.Extractor;
-using System;
-using System.Collections.Generic;
-using System.IO;
 
 namespace ExcelTransformLoad.Benchmarks
 {
