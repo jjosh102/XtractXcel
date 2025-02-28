@@ -595,6 +595,41 @@ namespace ExcelTransformLoad.Tests
             Assert.Equal(25, extractedData[0].Age);
         }
 
+        [Fact]
+        public void ExtractExtractor_ShouldGetTimeSpanValue()
+        {
+            using var stream = new MemoryStream();
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.AddWorksheet("Sheet1");
+
+                worksheet.Cell(1, 1).Value = "Full Name";
+                worksheet.Cell(1, 2).Value = "Work Start Time";
+
+                worksheet.Cell(2, 1).Value = "Alice";
+                worksheet.Cell(2, 2).Value = new TimeSpan(9, 0, 0);
+
+                worksheet.Cell(3, 1).Value = "Bob";
+                worksheet.Cell(3, 2).Value = new TimeSpan(13, 30, 0);
+
+                workbook.SaveAs(stream);
+            }
+
+            stream.Position = 0;
+
+            var extractedData = new ExcelExtractor<PersonWithTimeOnly>()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .FromStream(stream)
+                .Extract();
+
+            Assert.NotNull(extractedData);
+            Assert.Equal(2, extractedData.Count);
+            Assert.Equal(new TimeSpan(9, 0, 0), extractedData[0].WorkStartTime);
+            Assert.Equal(new TimeSpan(13, 30, 0), extractedData[1].WorkStartTime);
+        }
+
+
     }
 
 
@@ -641,5 +676,14 @@ namespace ExcelTransformLoad.Tests
         public decimal AnnualSalary { get; init; }
         public DateTime StartDate { get; init; }
         public bool IsActive { get; init; }
+    }
+
+    public class PersonWithTimeOnly
+    {
+        [ExcelColumn("Full Name")]
+        public string? Name { get; init; }
+
+        [ExcelColumn("Work Start Time")]
+        public TimeSpan WorkStartTime { get; init; }
     }
 }

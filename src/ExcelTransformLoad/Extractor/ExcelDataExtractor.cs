@@ -6,7 +6,7 @@ using ClosedXML.Excel;
 
 namespace ExcelTransformLoad.Extractor;
 
-public sealed class ExcelDataExtractor<T> where T : new()
+internal sealed class ExcelDataExtractor<T> where T : new()
 {
     private readonly ExcelExtractorOptions _options;
 
@@ -14,7 +14,7 @@ public sealed class ExcelDataExtractor<T> where T : new()
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
-    
+
     public List<T> ExtractData() => ExtractData(ExtractDataFromWorksheet);
 
     public List<T> ExtractData(Func<IXLRangeRow, T> mapRow) => ExtractData(worksheet => ExtractDataFromWorksheet(worksheet, mapRow));
@@ -122,31 +122,81 @@ public sealed class ExcelDataExtractor<T> where T : new()
         var isNullable = propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
         var defaultValue = Expression.Default(propertyType);
 
-        var convertedValue = Expression.Condition(
-            // Check if value is null
-            Expression.Equal(value, Expression.Constant(null, typeof(object))),
-            //If is nullable, assign null, else assign default(T)
-            isNullable ? Expression.Constant(null, propertyType) : defaultValue,
-            // Convert to actual value based on type
-            Expression.Convert(
-                Expression.Call(
-                    typeof(Convert).GetMethod(nameof(Convert.ChangeType), [typeof(object), typeof(Type)])!,
-                    value,
-                    Expression.Constant(targetType)
-                ),
-                propertyType
-            )
-        );
+        Expression convertedValue;
+
+        // Optimize for common types
+        if (targetType == typeof(string))
+        {
+            // For strings, avoid unnecessary conversions
+            convertedValue = Expression.Condition(
+                Expression.Equal(value, Expression.Constant(null, typeof(object))),
+                Expression.Constant(null, typeof(string)),
+                Expression.Convert(value, typeof(string))
+            );
+        }
+        else if (targetType == typeof(int) || targetType == typeof(double) ||
+                 targetType == typeof(decimal) || targetType == typeof(DateTime) ||
+                 targetType == typeof(bool) || targetType == typeof(bool))
+        {
+            // Use direct conversion methods for common types
+            MethodInfo convertMethod = typeof(Convert).GetMethod(
+                GetConvertMethodName(targetType),
+                [typeof(object)])!;
+
+            convertedValue = Expression.Condition(
+                Expression.Equal(value, Expression.Constant(null, typeof(object))),
+                isNullable ? Expression.Constant(null, propertyType) : defaultValue,
+                Expression.Convert(
+                    Expression.Call(convertMethod, value),
+                    propertyType
+                )
+            );
+        }
+        else
+        {
+            // Fallback to general ChangeType for other types
+            convertedValue = Expression.Condition(
+                Expression.Equal(value, Expression.Constant(null, typeof(object))),
+                isNullable ? Expression.Constant(null, propertyType) : defaultValue,
+                Expression.Convert(
+                    Expression.Call(
+                        typeof(Convert).GetMethod(nameof(Convert.ChangeType), [typeof(object), typeof(Type)])!,
+                        value,
+                        Expression.Constant(targetType)
+                    ),
+                    propertyType
+                )
+            );
+        }
 
         var propertyAccess = Expression.Property(instance, property);
         var assign = Expression.Assign(propertyAccess, convertedValue);
 
         return Expression.Lambda<Action<T, object?>>(assign, instance, value).Compile();
+
+        static string GetConvertMethodName(Type targetType)
+        {
+            return targetType switch
+            {
+                Type t when t == typeof(int) => nameof(Convert.ToInt32),
+                Type t when t == typeof(double) => nameof(Convert.ToDouble),
+                Type t when t == typeof(decimal) => nameof(Convert.ToDecimal),
+                Type t when t == typeof(DateTime) => nameof(Convert.ToDateTime),
+                Type t when t == typeof(bool) => nameof(Convert.ToBoolean),
+                Type t when t == typeof(string) => nameof(Convert.ToString),
+                _ => nameof(Convert.ChangeType)
+            };
+        }
     }
 
     private static object? GetCellValue(IXLCell cell)
     {
-        return cell.Value.Type switch
+        var type = cell.Value.Type;
+
+        if (type == XLDataType.Blank)
+            return null;
+
+        return type switch
         {
             XLDataType.DateTime => cell.GetDateTime(),
             XLDataType.Number => cell.GetDouble(),
@@ -154,8 +204,7 @@ public sealed class ExcelDataExtractor<T> where T : new()
             XLDataType.Boolean => cell.GetBoolean(),
             XLDataType.TimeSpan => cell.GetTimeSpan(),
             XLDataType.Error => cell.GetError(),
-            XLDataType.Blank => null,
-            _ => null
+            _ => cell.GetString()
         };
     }
 

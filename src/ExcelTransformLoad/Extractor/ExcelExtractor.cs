@@ -2,7 +2,7 @@ using ClosedXML.Excel;
 
 namespace ExcelTransformLoad.Extractor;
 
-public class ExcelExtractor<T> where T : new()
+public sealed class ExcelExtractor<T> where T : new()
 {
     private readonly ExcelExtractorOptions _options = new();
     private Func<IXLRangeRow, T>? _rowMappingDelegate;

@@ -1,9 +1,8 @@
-namespace ExcelTransformLoad.Extractor
+namespace ExcelTransformLoad.Extractor;
+
+public enum SourceType
 {
-    public enum SourceType
-    {
-        None,
-        FilePath,
-        Stream
-    }
+    None,
+    FilePath,
+    Stream
 }

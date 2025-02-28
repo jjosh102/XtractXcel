@@ -1,6 +1,6 @@
 namespace ExcelTransformLoad.Extractor;
 
-public class ExcelExtractorOptions
+public sealed class ExcelExtractorOptions
 {
     public bool ReadHeader { get; set; } = true;
     public int SheetIndex { get; set; } = 1;
