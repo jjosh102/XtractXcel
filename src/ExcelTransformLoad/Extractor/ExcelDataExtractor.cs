@@ -14,7 +14,6 @@ internal sealed class ExcelDataExtractor<T> where T : new()
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
-
     public List<T> ExtractData() => ExtractData(ExtractDataFromWorksheet);
 
     public List<T> ExtractData(Func<IXLRangeRow, T> mapRow) => ExtractData(worksheet => ExtractDataFromWorksheet(worksheet, mapRow));
