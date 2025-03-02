@@ -73,7 +73,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ShouldParseExcelIntoCorrectTypes()
+        public void ExcelExtractor_ShouldParseExcelIntoCorrectTypes()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<Person>()
@@ -87,7 +87,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ShouldParseNullableFieldsCorrectly()
+        public void ExcelExtractor_ShouldParseNullableFieldsCorrectly()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<Person>()
@@ -102,7 +102,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ShouldParseNegativeAndZeroValuesCorrectly()
+        public void ExcelExtractor_ShouldParseNegativeAndZeroValuesCorrectly()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<Person>()
@@ -116,7 +116,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ShouldParseDatesCorrectly()
+        public void ExcelExtractor_ShouldParseDatesCorrectly()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<Person>()
@@ -131,7 +131,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ShouldHandleMissingColumns()
+        public void ExcelExtractor_ShouldHandleMissingColumns()
         {
             using var stream = new MemoryStream();
             using (var workbook = new XLWorkbook())
@@ -162,7 +162,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_FromStream_ShouldThrowForNullStream()
+        public void ExcelExtractor_FromStream_ShouldThrowForNullStream()
         {
             var extractor = new ExcelExtractor<Person>()
                 .WithHeader(true)
@@ -172,7 +172,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_FromFile_ShouldThrowForNullOrWhitespaceFilePath()
+        public void ExcelExtractor_FromFile_ShouldThrowForNullOrWhitespaceFilePath()
         {
             var extractor = new ExcelExtractor<Person>()
                 .WithHeader(true)
@@ -198,7 +198,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_FromStream_ShouldReturnValidData()
+        public void ExcelExtractor_FromStream_ShouldReturnValidData()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<Person>()
@@ -214,7 +214,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_FromFile_ShouldReturnValidData()
+        public void ExcelExtractor_FromFile_ShouldReturnValidData()
         {
             var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".xlsx");
             try
@@ -243,7 +243,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ShouldHandleMultipleFallbackColumns()
+        public void ExcelExtractor_ShouldHandleMultipleFallbackColumns()
         {
             using var stream = new MemoryStream();
             using (var workbook = new XLWorkbook())
@@ -278,7 +278,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ThrowsWhenModifyingOptionsAfterSourceSet()
+        public void ExcelExtractor_ThrowsWhenModifyingOptionsAfterSourceSet()
         {
             var extractor = new ExcelExtractor<Person>()
                 .WithHeader(true)
@@ -290,7 +290,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ThrowsWhenSourceIsSetTwice()
+        public void ExcelExtractor_ThrowsWhenSourceIsSetTwice()
         {
             var extractor = new ExcelExtractor<Person>()
                 .WithHeader(true)
@@ -302,7 +302,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_IncompatibleType_ShouldThrowArgumentException()
+        public void ExcelExtractor_IncompatibleType_ShouldThrowArgumentException()
         {
             using var stream = new MemoryStream();
             using (var workbook = new XLWorkbook())
@@ -334,7 +334,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ShouldParseExcelWithoutHeaders()
+        public void ExcelExtractor_ShouldParseExcelWithoutHeaders()
         {
             using var stream = CreateTestExcelFileWithNoHeader();
 
@@ -361,7 +361,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_WithoutHeader_ShouldHandleMissingValues()
+        public void ExcelExtractor_WithoutHeader_ShouldHandleMissingValues()
         {
             using var stream = new MemoryStream();
             using (var workbook = new XLWorkbook())
@@ -393,7 +393,7 @@ namespace ExcelTransformLoad.Tests
             Assert.Null(extractedData[0].LastActive);
         }
         [Fact]
-        public void WithManualMapping_ShouldExtractDataCorrectly()
+        public void ExcelExtractor_WithManualMapping_ShouldExtractDataCorrectly()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<Person>()
@@ -426,7 +426,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void WithManualMapping_ShouldWorkWithoutHeader()
+        public void ExcelExtractor_WithManualMapping_ShouldWorkWithoutHeader()
         {
             using var stream = CreateTestExcelFileWithNoHeader();
             var extractedData = new ExcelExtractor<PersonNoHeader>()
@@ -449,7 +449,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void WithManualMapping_ShouldTransformDataDuringExtraction()
+        public void ExcelExtractor_WithManualMapping_ShouldTransformDataDuringExtraction()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<Person>()
@@ -476,7 +476,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void WithManualMapping_ShouldCreateDifferentObjectType()
+        public void ExcelExtractor_WithManualMapping_ShouldCreateDifferentObjectType()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<CustomPerson>()
@@ -505,7 +505,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void WithManualMapping_ShouldHandleEmptyWorksheet()
+        public void ExcelExtractor_WithManualMapping_ShouldHandleEmptyWorksheet()
         {
             using var stream = new MemoryStream();
             using (var workbook = new XLWorkbook())
@@ -531,7 +531,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void WithManualMapping_ShouldSelectSpecificColumns()
+        public void ExcelExtractor_WithManualMapping_ShouldSelectSpecificColumns()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<Person>()
@@ -539,7 +539,6 @@ namespace ExcelTransformLoad.Tests
                 .WithSheetIndex(1)
                 .WithManualMapping(row => new Person
                 {
-                    // Only map name and join date
                     Name = row.Cell(1).GetString(),
                     JoinDate = row.Cell(4).GetDateTime()
                 })
@@ -556,7 +555,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void WithManualMapping_ShouldThrowWhenExtractCalledWithoutDelegate()
+        public void ExcelExtractor_WithManualMapping_ShouldThrowWhenExtractCalledWithoutDelegate()
         {
             using var stream = CreateTestExcelFile();
             var extractor = new ExcelExtractor<Person>()
@@ -572,7 +571,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void WithManualMapping_ShouldIgnoreAttributeMappings()
+        public void ExcelExtractor_WithManualMapping_ShouldIgnoreAttributeMappings()
         {
             using var stream = CreateTestExcelFile();
             var extractedData = new ExcelExtractor<NoExcelAttributes>()
@@ -596,7 +595,7 @@ namespace ExcelTransformLoad.Tests
         }
 
         [Fact]
-        public void ExtractExtractor_ShouldGetTimeSpanValue()
+        public void ExcelExtractor_ShouldGetTimeSpanValue()
         {
             using var stream = new MemoryStream();
             using (var workbook = new XLWorkbook())
@@ -627,6 +626,37 @@ namespace ExcelTransformLoad.Tests
             Assert.Equal(2, extractedData.Count);
             Assert.Equal(new TimeSpan(9, 0, 0), extractedData[0].WorkStartTime);
             Assert.Equal(new TimeSpan(13, 30, 0), extractedData[1].WorkStartTime);
+        }
+
+
+        [Fact]
+        public void ExcelExtractor_ShouldThrowExceptionWhenWorksheetIndexIsInvalid()
+        {
+            using var stream = CreateTestExcelFile();
+            var extractor = new ExcelExtractor<Person>()
+                .WithHeader(true)
+                .WithSheetIndex(999)
+                .FromStream(stream);
+
+            var exception = Record.Exception(() => extractor.Extract());
+
+            Assert.NotNull(exception);
+            Assert.IsType<ArgumentException>(exception);
+        }
+
+        [Fact]
+        public void ExcelExtractor_ShouldThrowExceptionWhenInvalidFileIsProvided()
+        {
+    
+            var extractor = new ExcelExtractor<Person>()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .FromFile("invalid.xlsx");
+
+            var exception = Record.Exception(() => extractor.Extract());
+
+            Assert.NotNull(exception);
+            Assert.IsType<FileNotFoundException>(exception);
         }
 
 
