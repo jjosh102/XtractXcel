@@ -76,11 +76,11 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_ShouldParseExcelIntoCorrectTypes()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<Person>();
 
             Assert.NotNull(extractedData);
             Assert.Equal(3, extractedData.Count);
@@ -90,11 +90,11 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_ShouldParseNullableFieldsCorrectly()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<Person>();
 
             Assert.Null(extractedData[1].Age);
             Assert.Null(extractedData[1].Salary);
@@ -105,11 +105,11 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_ShouldParseNegativeAndZeroValuesCorrectly()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<Person>();
 
             Assert.Equal(0, extractedData[2].Age);
             Assert.Equal(-100.50m, extractedData[2].Salary);
@@ -119,11 +119,11 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_ShouldParseDatesCorrectly()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<Person>();
 
             Assert.Equal(new DateTime(2020, 5, 1), extractedData[0].JoinDate);
             Assert.Equal(new DateTime(2018, 10, 15), extractedData[1].JoinDate);
@@ -148,11 +148,11 @@ namespace ExcelTransformLoad.Tests
             }
             stream.Position = 0;
 
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<Person>();
 
             Assert.NotNull(extractedData);
             Assert.Single(extractedData);
@@ -164,7 +164,7 @@ namespace ExcelTransformLoad.Tests
         [Fact]
         public void ExcelExtractor_FromStream_ShouldThrowForNullStream()
         {
-            var extractor = new ExcelExtractor<Person>()
+            var extractor = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1);
 
@@ -174,7 +174,7 @@ namespace ExcelTransformLoad.Tests
         [Fact]
         public void ExcelExtractor_FromFile_ShouldThrowForNullOrWhitespaceFilePath()
         {
-            var extractor = new ExcelExtractor<Person>()
+            var extractor = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1);
 
@@ -185,12 +185,12 @@ namespace ExcelTransformLoad.Tests
         public void ExtractDataFromStream_ShouldThrowIfNoPropertiesHaveAttributes()
         {
             using var stream = CreateTestExcelFile();
-            var extractor = new ExcelExtractor<NoExcelAttributes>()
+            var extractor = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream);
 
-            var exception = Record.Exception(() => extractor.Extract());
+            var exception = Record.Exception(() => extractor.Extract<NoExcelAttributes>());
 
             Assert.NotNull(exception);
             Assert.IsType<InvalidOperationException>(exception);
@@ -201,11 +201,11 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_FromStream_ShouldReturnValidData()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<Person>();
 
             Assert.NotNull(extractedData);
             Assert.Equal(3, extractedData.Count);
@@ -225,11 +225,11 @@ namespace ExcelTransformLoad.Tests
                     stream.CopyTo(fileStream);
                 }
 
-                var extractedData = new ExcelExtractor<Person>()
+                var extractedData = new ExcelExtractor()
                     .WithHeader(true)
                     .WithSheetIndex(1)
                     .FromFile(tempFile)
-                    .Extract();
+                    .Extract<Person>();
 
                 Assert.NotNull(extractedData);
                 Assert.Equal(3, extractedData.Count);
@@ -266,11 +266,11 @@ namespace ExcelTransformLoad.Tests
             }
             stream.Position = 0;
 
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<Person>();
 
             Assert.NotNull(extractedData);
             Assert.Single(extractedData);
@@ -280,7 +280,7 @@ namespace ExcelTransformLoad.Tests
         [Fact]
         public void ExcelExtractor_ThrowsWhenModifyingOptionsAfterSourceSet()
         {
-            var extractor = new ExcelExtractor<Person>()
+            var extractor = new ExcelExtractor()
                 .WithHeader(true)
                 .FromStream(new MemoryStream());
 
@@ -292,7 +292,7 @@ namespace ExcelTransformLoad.Tests
         [Fact]
         public void ExcelExtractor_ThrowsWhenSourceIsSetTwice()
         {
-            var extractor = new ExcelExtractor<Person>()
+            var extractor = new ExcelExtractor()
                 .WithHeader(true)
                 .FromStream(new MemoryStream());
 
@@ -322,12 +322,12 @@ namespace ExcelTransformLoad.Tests
 
             stream.Position = 0;
 
-            var extractor = new ExcelExtractor<PersonNoHeader>()
+            var extractor = new ExcelExtractor()
                 .WithHeader(false)
                 .WithSheetIndex(1)
                 .FromStream(stream);
 
-            var exception = Record.Exception(() => extractor.Extract());
+            var exception = Record.Exception(() => extractor.Extract<PersonNoHeader>());
 
             Assert.NotNull(exception);
             Assert.IsType<ArgumentException>(exception);
@@ -338,11 +338,11 @@ namespace ExcelTransformLoad.Tests
         {
             using var stream = CreateTestExcelFileWithNoHeader();
 
-            var extractedData = new ExcelExtractor<PersonNoHeader>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(false)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<PersonNoHeader>();
 
             Assert.NotNull(extractedData);
             Assert.Equal(2, extractedData.Count);
@@ -378,11 +378,11 @@ namespace ExcelTransformLoad.Tests
 
             stream.Position = 0;
 
-            var extractedData = new ExcelExtractor<PersonNoHeader>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(false)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<PersonNoHeader>();
 
             Assert.NotNull(extractedData);
             Assert.Single(extractedData);
@@ -392,23 +392,23 @@ namespace ExcelTransformLoad.Tests
             Assert.Equal(new DateTime(2021, 5, 10), extractedData[0].JoinDate);
             Assert.Null(extractedData[0].LastActive);
         }
+
         [Fact]
         public void ExcelExtractor_WithManualMapping_ShouldExtractDataCorrectly()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new Person
+                .FromStream(stream)
+                .ExtractWithManualMapping(row => new Person
                 {
                     Name = row.Cell(1).GetString(),
                     Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
                     Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
                     JoinDate = row.Cell(4).GetDateTime(),
                     LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
-                })
-                .FromStream(stream)
-                .Extract();
+                });
 
             Assert.NotNull(extractedData);
             Assert.Equal(3, extractedData.Count);
@@ -429,19 +429,19 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_WithManualMapping_ShouldWorkWithoutHeader()
         {
             using var stream = CreateTestExcelFileWithNoHeader();
-            var extractedData = new ExcelExtractor<PersonNoHeader>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(false)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new PersonNoHeader
+                .FromStream(stream)
+                .ExtractWithManualMapping(row => new PersonNoHeader
                 {
                     Name = row.Cell(1).GetString(),
                     Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
                     Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
                     JoinDate = row.Cell(4).GetDateTime(),
                     LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
-                })
-                .FromStream(stream)
-                .Extract();
+                });
+
 
             Assert.NotNull(extractedData);
             Assert.Equal(2, extractedData.Count);
@@ -452,19 +452,18 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_WithManualMapping_ShouldTransformDataDuringExtraction()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new Person
+                .FromStream(stream)
+                .ExtractWithManualMapping(row => new Person
                 {
                     Name = row.Cell(1).GetString().ToUpper(),
                     Age = !row.Cell(2).IsEmpty() ? (int)(row.Cell(2).GetDouble() * 2) : null,
                     Salary = !row.Cell(3).IsEmpty() ? (decimal)(row.Cell(3).GetDouble() / 2) : null,
                     JoinDate = row.Cell(4).GetDateTime().AddYears(1),
                     LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : DateTime.Now
-                })
-                .FromStream(stream)
-                .Extract();
+                });
 
             Assert.NotNull(extractedData);
             Assert.Equal(3, extractedData.Count);
@@ -479,19 +478,18 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_WithManualMapping_ShouldCreateDifferentObjectType()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<CustomPerson>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new CustomPerson
+                .FromStream(stream)
+                .ExtractWithManualMapping(row => new CustomPerson
                 {
                     FullName = row.Cell(1).GetString(),
                     YearsOld = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : 0,
                     AnnualSalary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : 0,
                     StartDate = row.Cell(4).GetDateTime(),
                     IsActive = !row.Cell(5).IsEmpty()
-                })
-                .FromStream(stream)
-                .Extract();
+                });
 
             Assert.NotNull(extractedData);
             Assert.Equal(3, extractedData.Count);
@@ -515,16 +513,15 @@ namespace ExcelTransformLoad.Tests
             }
             stream.Position = 0;
 
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new Person
+                .FromStream(stream)
+                .ExtractWithManualMapping(row => new Person
                 {
                     Name = row.Cell(1).GetString(),
                     Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null
-                })
-                .FromStream(stream)
-                .Extract();
+                });
 
             Assert.NotNull(extractedData);
             Assert.Empty(extractedData);
@@ -534,16 +531,16 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_WithManualMapping_ShouldSelectSpecificColumns()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<Person>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new Person
+                .FromStream(stream)
+                .ExtractWithManualMapping(row => new Person
                 {
                     Name = row.Cell(1).GetString(),
                     JoinDate = row.Cell(4).GetDateTime()
-                })
-                .FromStream(stream)
-                .Extract();
+                });
+
 
             Assert.NotNull(extractedData);
             Assert.Equal(3, extractedData.Count);
@@ -558,13 +555,14 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_WithManualMapping_ShouldThrowWhenExtractCalledWithoutDelegate()
         {
             using var stream = CreateTestExcelFile();
-            var extractor = new ExcelExtractor<Person>()
+            var extractor = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(null!)
                 .FromStream(stream);
+                
+               
 
-            var exception = Record.Exception(() => extractor.Extract());
+            var exception = Record.Exception(() => extractor.ExtractWithManualMapping<Person>(null!));
             Assert.NotNull(exception);
             Assert.IsType<InvalidOperationException>(exception);
             Assert.Equal("A row mapping function must be provided when manual mapping is enabled.", exception.Message);
@@ -574,19 +572,18 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_WithManualMapping_ShouldIgnoreAttributeMappings()
         {
             using var stream = CreateTestExcelFile();
-            var extractedData = new ExcelExtractor<NoExcelAttributes>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new NoExcelAttributes
+                .FromStream(stream)
+                .ExtractWithManualMapping(row => new NoExcelAttributes
                 {
                     Name = row.Cell(1).GetString(),
                     Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
                     Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
                     JoinDate = row.Cell(4).GetDateTime(),
                     LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
-                })
-                .FromStream(stream)
-                .Extract();
+                });
 
             Assert.NotNull(extractedData);
             Assert.Equal(3, extractedData.Count);
@@ -616,11 +613,11 @@ namespace ExcelTransformLoad.Tests
 
             stream.Position = 0;
 
-            var extractedData = new ExcelExtractor<PersonWithTimeOnly>()
+            var extractedData = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<PersonWithTimeOnly>();
 
             Assert.NotNull(extractedData);
             Assert.Equal(2, extractedData.Count);
@@ -633,32 +630,48 @@ namespace ExcelTransformLoad.Tests
         public void ExcelExtractor_ShouldThrowExceptionWhenWorksheetIndexIsInvalid()
         {
             using var stream = CreateTestExcelFile();
-            var extractor = new ExcelExtractor<Person>()
+            var extractor = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(999)
                 .FromStream(stream);
 
-            var exception = Record.Exception(() => extractor.Extract());
+            var exception = Record.Exception(() => extractor.Extract<Person>());
 
             Assert.NotNull(exception);
-            Assert.IsType<ArgumentException>(exception);
+            Assert.IsType<ArgumentOutOfRangeException>(exception);
         }
 
         [Fact]
         public void ExcelExtractor_ShouldThrowExceptionWhenInvalidFileIsProvided()
         {
-    
-            var extractor = new ExcelExtractor<Person>()
+
+            var extractor = new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromFile("invalid.xlsx");
 
-            var exception = Record.Exception(() => extractor.Extract());
+            var exception = Record.Exception(() => extractor.Extract<Person>());
 
             Assert.NotNull(exception);
             Assert.IsType<FileNotFoundException>(exception);
         }
 
+        [Fact]
+        public void ExcelExtractor_WithSpecificColumns_ShouldReturnValidData()
+        {
+            using var stream = CreateTestExcelFile();
+            var extractedData = new ExcelExtractor()
+                .WithHeader(true)
+                .WithSheetIndex(1)
+                .FromStream(stream)
+                .Extract<PersonWithSpecificColumns>();
+
+            Assert.NotNull(extractedData);
+            Assert.Equal("Alice", extractedData[0].NameOnly);
+            Assert.Equal(50000.75m, extractedData[0].SalaryOnly);
+            Assert.Equal("Charlie", extractedData[2].NameOnly);
+            Assert.Equal(-100.50m, extractedData[2].SalaryOnly);
+        }
 
     }
 
@@ -680,6 +693,17 @@ namespace ExcelTransformLoad.Tests
         [ExcelColumn("Last Active", "Last Activity")]
         public DateTime? LastActive { get; init; }
     }
+
+    public class PersonWithSpecificColumns
+    {
+        [ExcelColumn("Full Name", "Name", "Employee Name")]
+        public string? NameOnly { get; init; }
+
+        [ExcelColumn("Salary")]
+        public decimal? SalaryOnly { get; init; }
+
+    }
+
 
     public class NoExcelAttributes
     {

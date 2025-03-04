@@ -2,36 +2,30 @@ using ClosedXML.Excel;
 
 namespace ExcelTransformLoad.Extractor;
 
-public sealed class ExcelExtractor<T> where T : new()
+public sealed class ExcelExtractor
 {
-    private readonly ExcelExtractorOptions _options = new();
-    private Func<IXLRangeRow, T>? _rowMappingDelegate;
     private bool _isSourceSet = false;
-    private bool _isManualMappingSet = false;
+    private string? _filPath;
+    private Stream? _stream;
+    private bool _readHeader = false;
+    private int _sheetIndex = 1;
 
-    public ExcelExtractor<T> WithHeader(bool readHeader)
+
+    public ExcelExtractor WithHeader(bool readHeader)
     {
         EnsureSourceNotSet();
-        _options.ReadHeader = readHeader;
+        _readHeader = readHeader;
         return this;
     }
 
-    public ExcelExtractor<T> WithSheetIndex(int sheetIndex)
+    public ExcelExtractor WithSheetIndex(int sheetIndex)
     {
         EnsureSourceNotSet();
-        _options.SheetIndex = sheetIndex;
+        _sheetIndex = sheetIndex;
         return this;
     }
 
-    public ExcelExtractor<T> WithManualMapping(Func<IXLRangeRow, T> defineRowMapping)
-    {
-        EnsureSourceNotSet();
-        _rowMappingDelegate = defineRowMapping;
-        _isManualMappingSet = true;
-        return this;
-    }
-
-    public ExcelExtractor<T> FromFile(string filePath)
+    public ExcelExtractor FromFile(string filePath)
     {
         EnsureSourceNotSet();
 
@@ -40,12 +34,12 @@ public sealed class ExcelExtractor<T> where T : new()
             throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
         }
 
-        _options.FilePath = filePath;
+        _filPath = filePath;
         _isSourceSet = true;
         return this;
     }
 
-    public ExcelExtractor<T> FromStream(Stream stream)
+    public ExcelExtractor FromStream(Stream stream)
     {
         EnsureSourceNotSet();
 
@@ -54,26 +48,49 @@ public sealed class ExcelExtractor<T> where T : new()
             throw new ArgumentNullException(nameof(stream), "Stream cannot be null");
         }
 
-        _options.Stream = stream;
+        _stream = stream;
         _isSourceSet = true;
         return this;
     }
 
-    public List<T> Extract()
+    public List<T> Extract<T>() where T : new()
     {
         if (!_isSourceSet)
         {
             throw new InvalidOperationException("Data source (file or stream) is required before extraction.");
         }
 
-        var extractor = new ExcelDataExtractor<T>(_options);
+        var _options = new ExcelDataSourceOptions
+        {
+            FilePath = _filPath,
+            Stream = _stream,
+        };
 
-        if (_isManualMappingSet && _rowMappingDelegate is null)
+        var extractor = new ExcelDataExtractor(_options);
+        return extractor.ExtractData<T>(_sheetIndex, _readHeader);
+    }
+
+    public List<T> ExtractWithManualMapping<T>(Func<IXLRangeRow, T> manualMapping) where T : new()
+    {
+        if (!_isSourceSet)
+        {
+            throw new InvalidOperationException("Data source (file or stream) is required before extraction.");
+        }
+
+        var _options = new ExcelDataSourceOptions
+        {
+            FilePath = _filPath,
+            Stream = _stream,
+        };
+
+        var extractor = new ExcelDataExtractor(_options);
+
+        if (manualMapping is null)
         {
             throw new InvalidOperationException("A row mapping function must be provided when manual mapping is enabled.");
         }
 
-        return _isManualMappingSet ? extractor.ExtractData(_rowMappingDelegate!) : extractor.ExtractData();
+        return extractor.ExtractData<T>(_sheetIndex, manualMapping, _readHeader);
     }
 
     private void EnsureSourceNotSet()

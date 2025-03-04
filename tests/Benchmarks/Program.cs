@@ -45,109 +45,105 @@ namespace ExcelTransformLoad.Benchmarks
         public List<Person> SmallFile_AttributeMapping()
         {
             _smallExcelStream.Position = 0;
-            return new ExcelExtractor<Person>()
+            return new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(_smallExcelStream)
-                .Extract();
+                .Extract<Person>();
         }
 
         [Benchmark]
         public List<Person> SmallFile_ManualMapping()
         {
             _smallExcelStream.Position = 0;
-            return new ExcelExtractor<Person>()
+            return new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new Person
+                .FromStream(_smallExcelStream)
+                .ExtractWithManualMapping(row => new Person
                 {
                     Name = row.Cell(1).IsEmpty() ? null : row.Cell(1).GetString(),
                     Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
                     Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
                     JoinDate = row.Cell(4).GetDateTime(),
                     LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
-                })
-                .FromStream(_smallExcelStream)
-                .Extract();
+                });
         }
 
         [Benchmark]
         public List<NoExcelAttributes> SmallFile_ManualMapping_NoAttributes()
         {
             _smallExcelStream.Position = 0;
-            return new ExcelExtractor<NoExcelAttributes>()
+            return new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new NoExcelAttributes
+                .FromStream(_smallExcelStream)
+                .ExtractWithManualMapping(row => new NoExcelAttributes
                 {
                     Name = row.Cell(1).IsEmpty() ? null : row.Cell(1).GetString(),
                     Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
                     Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
                     JoinDate = row.Cell(4).GetDateTime(),
                     LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
-                })
-                .FromStream(_smallExcelStream)
-                .Extract();
+                });
         }
 
         [Benchmark]
         public List<Person> MediumFile_AttributeMapping()
         {
             _mediumExcelStream.Position = 0;
-            return new ExcelExtractor<Person>()
+            return new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(_mediumExcelStream)
-                .Extract();
+                .Extract<Person>();
         }
 
         [Benchmark]
         public List<Person> MediumFile_ManualMapping()
         {
             _mediumExcelStream.Position = 0;
-            return new ExcelExtractor<Person>()
+            return new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new Person
+                .FromStream(_mediumExcelStream)
+                .ExtractWithManualMapping(row => new Person
                 {
                     Name = row.Cell(1).IsEmpty() ? null : row.Cell(1).GetString(),
                     Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
                     Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
                     JoinDate = row.Cell(4).GetDateTime(),
                     LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
-                })
-                .FromStream(_mediumExcelStream)
-                .Extract();
+                });
         }
 
         [Benchmark]
         public List<Person> LargeFile_AttributeMapping()
         {
             _largeExcelStream.Position = 0;
-            return new ExcelExtractor<Person>()
+            return new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(_largeExcelStream)
-                .Extract();
+                .Extract<Person>();
         }
 
         [Benchmark]
         public List<Person> LargeFile_ManualMapping()
         {
             _largeExcelStream.Position = 0;
-            return new ExcelExtractor<Person>()
+            return new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new Person
+                .FromStream(_largeExcelStream)
+                .ExtractWithManualMapping(row => new Person
                 {
                     Name = row.Cell(1).IsEmpty() ? null : row.Cell(1).GetString(),
                     Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
                     Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
                     JoinDate = row.Cell(4).GetDateTime(),
                     LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
-                })
-                .FromStream(_largeExcelStream)
-                .Extract();
+                });
         }
 
 
@@ -155,30 +151,29 @@ namespace ExcelTransformLoad.Benchmarks
         public List<Person> ManyColumns_AttributeMapping()
         {
             var stream = CreateTestExcelFileWithManyColumns();
-            return new ExcelExtractor<Person>()
+            return new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
                 .FromStream(stream)
-                .Extract();
+                .Extract<Person>();
         }
 
         [Benchmark]
         public List<Person> ManyColumns_ManualMapping()
         {
             var stream = CreateTestExcelFileWithManyColumns();
-            return new ExcelExtractor<Person>()
+            return new ExcelExtractor()
                 .WithHeader(true)
                 .WithSheetIndex(1)
-                .WithManualMapping(row => new Person
+                .FromStream(stream)
+                .ExtractWithManualMapping(row => new Person
                 {
                     Name = row.Cell(1).IsEmpty() ? null : row.Cell(1).GetString(),
                     Age = !row.Cell(2).IsEmpty() ? (int)row.Cell(2).GetDouble() : null,
                     Salary = !row.Cell(3).IsEmpty() ? (decimal)row.Cell(3).GetDouble() : null,
                     JoinDate = row.Cell(4).GetDateTime(),
                     LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
-                })
-                .FromStream(stream)
-                .Extract();
+                });
         }
 
 
