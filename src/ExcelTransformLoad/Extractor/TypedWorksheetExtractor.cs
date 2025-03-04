@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 using ClosedXML.Excel;
@@ -6,15 +7,31 @@ namespace ExcelTransformLoad.Extractor;
 
 internal class TypedWorksheetExtractor<T> where T : new()
 {
+    private static readonly ConcurrentDictionary<PropertyInfo, Action<T, object?>> _propertySetters = [];
+
+    // Cache the setters for the most common types in Excel
+    private static readonly ConcurrentDictionary<Type, Func<PropertyInfo, Action<T, object?>>> _setterFactories = new()
+    {
+        [typeof(string)] = prop => (obj, value) => prop.SetValue(obj, value?.ToString()),
+        [typeof(int)] = prop => CreateValueSetter(prop, Convert.ToInt32),
+        [typeof(int?)] = prop => CreateNullableValueSetter(prop, Convert.ToInt32),
+        [typeof(double)] = prop => CreateValueSetter(prop, Convert.ToDouble),
+        [typeof(double?)] = prop => CreateNullableValueSetter(prop, Convert.ToDouble),
+        [typeof(decimal)] = prop => CreateValueSetter(prop, Convert.ToDecimal),
+        [typeof(decimal?)] = prop => CreateNullableValueSetter(prop, Convert.ToDecimal),
+        [typeof(DateTime)] = prop => CreateValueSetter(prop, Convert.ToDateTime),
+        [typeof(DateTime?)] = prop => CreateNullableValueSetter(prop, Convert.ToDateTime),
+        [typeof(bool)] = prop => CreateValueSetter(prop, Convert.ToBoolean),
+        [typeof(bool?)] = prop => CreateNullableValueSetter(prop, Convert.ToBoolean),
+        [typeof(TimeSpan)] = prop => CreateValueSetter(prop, value => TimeSpan.Parse(value.ToString()!)),
+        [typeof(TimeSpan?)] = prop => CreateNullableValueSetter(prop, value => TimeSpan.Parse(value.ToString()!))
+    };
+
     public List<T> ExtractDataFromWorksheet(IXLWorksheet worksheet, bool readHeader)
     {
-        List<T> extractedData = [];
+        var extractedData = new List<T>();
         var excelRange = worksheet.RangeUsed();
-
-        if (excelRange is null)
-        {
-            return [];
-        }
+        if (excelRange is null) return extractedData;
 
         var excelRows = readHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
         var mappings = BuildAttributeMappings(worksheet, readHeader);
@@ -22,14 +39,10 @@ internal class TypedWorksheetExtractor<T> where T : new()
         foreach (var row in excelRows)
         {
             var obj = new T();
-
             foreach (var (colIndex, setter) in mappings)
             {
-                var cell = row.Cell(colIndex);
-                var value = GetCellValue(cell);
-                setter(obj, value);
+                setter(obj, GetCellValue(row.Cell(colIndex)));
             }
-
             extractedData.Add(obj);
         }
 
@@ -47,12 +60,12 @@ internal class TypedWorksheetExtractor<T> where T : new()
         return excelRows.Select(mapRow).ToList();
     }
 
-    private Dictionary<int, Action<T, object?>> BuildAttributeMappings(IXLWorksheet worksheet, bool readHeader)
+    private static Dictionary<int, Action<T, object?>> BuildAttributeMappings(IXLWorksheet worksheet, bool readHeader)
     {
-        //todo: Find way to reuse the mappings from a different instance of TypedWorksheetExtractor<T>
+
         var mappings = new Dictionary<int, Action<T, object?>>();
         var columnIndices = worksheet.Row(1).CellsUsed()
-            .ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
+                  .ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
 
         if (readHeader)
         {
@@ -62,8 +75,7 @@ internal class TypedWorksheetExtractor<T> where T : new()
                 {
                     if (columnIndices.TryGetValue(columnName, out int colIndex))
                     {
-                        var setter = CreateSetter(propInfo.Property);
-                        mappings[colIndex] = setter;
+                        mappings[colIndex] = GetSetterForProperty(propInfo.Property);
                         break;
                     }
                 }
@@ -71,90 +83,75 @@ internal class TypedWorksheetExtractor<T> where T : new()
         }
         else
         {
-            //Only retrieve the number of properties that match the number of used columns
-            var properties = GetProperties().Take(columnIndices.Count + 1);
+            var properties = GetProperties();
+
             foreach (var (propInfo, columnIndex) in properties.Select((p, i) => (p, i + 1)))
             {
-                mappings[columnIndex] = CreateSetter(propInfo);
+                mappings[columnIndex] = GetSetterForProperty(propInfo);
             }
         }
 
         return mappings;
     }
 
-    private static Action<T, object?> CreateSetter(PropertyInfo property)
+
+    private static  Action<T, object?> GetSetterForProperty(PropertyInfo property)
     {
+        if (_propertySetters.TryGetValue(property, out var cachedSetter)) return cachedSetter;
+
+        var setter = _setterFactories.TryGetValue(property.PropertyType, out var factory)
+            ? factory(property)
+            : CreateGenericSetter(property);
+
+        // Caches the generic setter
+        return _propertySetters[property] = setter;
+    }
+
+    private static Action<T, object?> CreateValueSetter<TValue>(PropertyInfo property, Func<object, TValue> converter) where TValue : struct
+    {
+        return (obj, value) =>
+        {
+            if (value is not null)
+            {
+                property.SetValue(obj, converter(value));
+            }
+            else
+            {
+                property.SetValue(obj, default(TValue));
+            }
+        };
+    }
+
+    private static Action<T, object?> CreateNullableValueSetter<TValue>(PropertyInfo property, Func<object, TValue> converter) where TValue : struct
+    {
+        return (obj, value) =>
+        {
+            if (value is not null)
+            {
+                property.SetValue(obj, converter(value));
+            }
+            else
+            {
+                property.SetValue(obj, null);
+            }
+        };
+    }
+
+    private static Action<T, object?> CreateGenericSetter(PropertyInfo property)
+    {
+        // This is a fallback for a generic setter in case no specific setter is found in _setterFactories
         var instance = Expression.Parameter(typeof(T), "instance");
         var value = Expression.Parameter(typeof(object), "value");
 
         var propertyType = property.PropertyType;
         var targetType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+        var convertedValue = Expression.Convert(
+            Expression.Call(typeof(Convert).GetMethod(nameof(Convert.ChangeType), [typeof(object), typeof(Type)])!,
+                value, Expression.Constant(targetType)),
+            propertyType);
 
-        var isNullable = propertyType.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
-        var defaultValue = Expression.Default(propertyType);
-
-        Expression convertedValue;
-
-        // Optimize for common types
-        if (targetType == typeof(string))
-        {
-            convertedValue = Expression.Condition(
-                Expression.Equal(value, Expression.Constant(null, typeof(object))),
-                Expression.Constant(null, typeof(string)),
-                Expression.Convert(value, typeof(string))
-            );
-        }
-        else if (targetType == typeof(int) || targetType == typeof(double) ||
-                 targetType == typeof(decimal) || targetType == typeof(DateTime) ||
-                 targetType == typeof(bool) || targetType == typeof(bool))
-        {
-            MethodInfo convertMethod = typeof(Convert).GetMethod(
-                GetConvertMethodName(targetType),
-                [typeof(object)])!;
-
-            convertedValue = Expression.Condition(
-                Expression.Equal(value, Expression.Constant(null, typeof(object))),
-                isNullable ? Expression.Constant(null, propertyType) : defaultValue,
-                Expression.Convert(
-                    Expression.Call(convertMethod, value),
-                    propertyType
-                )
-            );
-        }
-        else
-        {
-            convertedValue = Expression.Condition(
-                Expression.Equal(value, Expression.Constant(null, typeof(object))),
-                isNullable ? Expression.Constant(null, propertyType) : defaultValue,
-                Expression.Convert(
-                    Expression.Call(
-                        typeof(Convert).GetMethod(nameof(Convert.ChangeType), [typeof(object), typeof(Type)])!,
-                        value,
-                        Expression.Constant(targetType)
-                    ),
-                    propertyType
-                )
-            );
-        }
-
-        var propertyAccess = Expression.Property(instance, property);
-        var assign = Expression.Assign(propertyAccess, convertedValue);
-
+        var assign = Expression.Assign(Expression.Property(instance, property), convertedValue);
         return Expression.Lambda<Action<T, object?>>(assign, instance, value).Compile();
-
-        static string GetConvertMethodName(Type targetType)
-        {
-            return targetType switch
-            {
-                Type t when t == typeof(int) => nameof(Convert.ToInt32),
-                Type t when t == typeof(double) => nameof(Convert.ToDouble),
-                Type t when t == typeof(decimal) => nameof(Convert.ToDecimal),
-                Type t when t == typeof(DateTime) => nameof(Convert.ToDateTime),
-                Type t when t == typeof(bool) => nameof(Convert.ToBoolean),
-                Type t when t == typeof(string) => nameof(Convert.ToString),
-                _ => nameof(Convert.ChangeType)
-            };
-        }
     }
 
     private static object? GetCellValue(IXLCell cell)
@@ -179,24 +176,19 @@ internal class TypedWorksheetExtractor<T> where T : new()
     private static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetExcelColumnAttributeProperties()
     {
         var propertiesWithAttributes = typeof(T).GetProperties()
-            .Select(p => new
-            {
-                Property = p,
-                Attribute = p.GetCustomAttribute<ExcelColumnAttribute>()
-            })
+            .Select(p => new { Property = p, Attribute = p.GetCustomAttribute<ExcelColumnAttribute>() })
             .Where(p => p.Attribute != null)
             .Select(p => (p.Property, p.Attribute!))
             .ToList();
 
-        return propertiesWithAttributes.Count == 0
-            ? throw new InvalidOperationException($"No properties with {nameof(ExcelColumnAttribute)} found on type {typeof(T).Name}")
-            : propertiesWithAttributes;
+        return propertiesWithAttributes.Count > 0
+            ? propertiesWithAttributes
+            : throw new InvalidOperationException($"No properties with {nameof(ExcelColumnAttribute)} found on type {typeof(T).Name}");
     }
 
     private static List<PropertyInfo> GetProperties()
     {
         var properties = typeof(T).GetProperties();
-
         return properties.Length > 0
             ? properties.ToList()
             : throw new InvalidOperationException($"No properties found on type {typeof(T).Name}");
