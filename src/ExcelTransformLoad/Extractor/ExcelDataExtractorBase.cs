@@ -21,7 +21,7 @@ internal abstract class ExcelDataExtractorBase : IDisposable
             throw new ObjectDisposedException(nameof(ExcelDataExtractorBase));
         }
 
-        if (_workbook == null)
+        if (_workbook is null)
         {
             _workbook = _options.Source switch
             {

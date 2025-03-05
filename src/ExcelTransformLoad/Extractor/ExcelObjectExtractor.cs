@@ -9,8 +9,7 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
 {
     private static readonly ConcurrentDictionary<PropertyInfo, Action<TObject, object?>> PropertySetters = [];
 
-    private static readonly ConcurrentDictionary<Type, Func<PropertyInfo, Action<TObject, object?>>> SetterFactories =
-        new();
+    private static readonly ConcurrentDictionary<Type, Func<PropertyInfo, Action<TObject, object?>>> SetterFactories = new();
 
     static ExcelObjectExtractor()
     {
@@ -19,7 +18,7 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
 
     private static void InitializeDefaultSetterFactories()
     {
-        // Default converters for common types
+        // Default setters for common types
         SetterFactories[typeof(string)] = prop => (obj, value) => prop.SetValue(obj, value?.ToString());
 
         SetterFactories[typeof(int)] = prop => CreateValueSetter(prop, Convert.ToInt32);
