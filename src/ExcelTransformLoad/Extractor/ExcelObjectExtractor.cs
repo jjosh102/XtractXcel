@@ -37,16 +37,13 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
         SetterFactories[typeof(bool)] = prop => CreateValueSetter(prop, Convert.ToBoolean);
         SetterFactories[typeof(bool?)] = prop => CreateNullableValueSetter(prop, Convert.ToBoolean);
 
-        SetterFactories[typeof(TimeSpan)] =
-            prop => CreateValueSetter(prop, value => TimeSpan.Parse(value.ToString()!));
-        SetterFactories[typeof(TimeSpan?)] =
-            prop => CreateNullableValueSetter(prop, value => TimeSpan.Parse(value.ToString()!));
+        SetterFactories[typeof(TimeSpan)] = prop => CreateValueSetter(prop, value => TimeSpan.Parse(value.ToString()!));
+        SetterFactories[typeof(TimeSpan?)] = prop => CreateNullableValueSetter(prop, value => TimeSpan.Parse(value.ToString()!));
 
         SetterFactories[typeof(Guid)] = prop => CreateValueSetter(prop, value => Guid.Parse(value.ToString()!));
         SetterFactories[typeof(Guid?)] = prop => CreateNullableValueSetter(prop, value => Guid.Parse(value.ToString()!));
-        
     }
-
+    
     public static void RegisterConverter<TProperty>(Func<PropertyInfo, Action<TObject, object?>> converter)
     {
         var propType = typeof(TProperty);
@@ -69,7 +66,7 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
         foreach (var row in excelRows)
         {
             var obj = new TObject();
-            foreach (var (colIndex, setter) in mappings)
+            foreach ((int colIndex, Action<TObject, object?> setter) in mappings)
             {
                 try
                 {
@@ -125,7 +122,7 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
         {
             var properties = GetProperties();
 
-            foreach (var (propInfo, columnIndex) in properties.Select((p, i) => (p, i + 1)))
+            foreach ((PropertyInfo propInfo, int columnIndex) in properties.Select((p, i) => (p, i + 1)))
             {
                 mappings[columnIndex] = GetSetterForProperty(propInfo);
             }
@@ -147,7 +144,7 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
             }
             else
             {
-                //fallback to generic setter
+                //If target object properties do not have the types set in SetterFactories, resolve here.
                 return CreateGenericSetter(property);
             }
         }
@@ -184,19 +181,40 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
             }
         };
     }
-    
+
 
     private static Action<TObject, object?> CreateGenericSetter(PropertyInfo property)
     {
-        // This is a fallback for a generic setter in case no specific setter is found in _setterFactories
+        var propertyType = property.PropertyType;
+        var underlyingType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+
+        // Handle Enums here to resolve the correct type 
+        if (underlyingType.IsEnum)
+        {
+            return (obj, value) =>
+            {
+                switch (value)
+                {
+                    case null:
+                        property.SetValue(obj, propertyType.IsGenericType ? null : Activator.CreateInstance(propertyType));
+                        break;
+                    case string strValue when Enum.TryParse(underlyingType, strValue, true, out var result):
+                        property.SetValue(obj, result);
+                        break;
+                    default:
+                        throw new InvalidCastException($"Cannot convert '{value}' to {propertyType.FullName}");
+                }
+            };
+        }
+
+        // This is a fallback for a generic setter in case no specific setter is not found in SetterFactories
         var instance = Expression.Parameter(typeof(TObject), "instance");
         var value = Expression.Parameter(typeof(object), "value");
 
-        var propertyType = property.PropertyType;
-        var targetType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+
         var convertedValue = Expression.Convert(
             Expression.Call(typeof(Convert).GetMethod(nameof(Convert.ChangeType), [typeof(object), typeof(Type)])!,
-                value, Expression.Constant(targetType)),
+                value, Expression.Constant(underlyingType)),
             propertyType);
 
         var assign = Expression.Assign(Expression.Property(instance, property), convertedValue);
