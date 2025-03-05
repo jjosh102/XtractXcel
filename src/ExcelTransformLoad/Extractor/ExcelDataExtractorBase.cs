@@ -5,9 +5,9 @@ namespace ExcelTransformLoad.Extractor;
 
 internal abstract class ExcelDataExtractorBase : IDisposable
 {
-    protected readonly ExcelDataSourceOptions _options;
-    protected XLWorkbook? _workbook;
-    protected bool IsDisposed = false;
+    private readonly ExcelDataSourceOptions _options;
+    private XLWorkbook? _workbook;
+    private bool _isDisposed = false;
 
     protected ExcelDataExtractorBase(ExcelDataSourceOptions options)
     {
@@ -16,7 +16,7 @@ internal abstract class ExcelDataExtractorBase : IDisposable
 
     protected XLWorkbook GetOrCreateWorkbook()
     {
-        if (IsDisposed)
+        if (_isDisposed)
         {
             throw new ObjectDisposedException(nameof(ExcelDataExtractorBase));
         }
@@ -37,11 +37,11 @@ internal abstract class ExcelDataExtractorBase : IDisposable
 
     public void Dispose()
     {
-        if (!IsDisposed)
+        if (!_isDisposed)
         {
             _workbook?.Dispose();
             _workbook = null;
-            IsDisposed = true;
+            _isDisposed = true;
         }
     }
 }

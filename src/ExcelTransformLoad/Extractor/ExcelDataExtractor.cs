@@ -12,7 +12,7 @@ internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
         if (!workbook.TryGetWorksheet(worksheetName, out var worksheet))
             throw new ArgumentException($"Worksheet '{worksheetName}' not found", nameof(worksheetName));
 
-        return new TypedWorksheetExtractor<T>().ExtractDataFromWorksheet(worksheet, readHeader);
+        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, readHeader);
     }
 
     public List<T> ExtractData<T>(string worksheetName, Func<IXLRangeRow, T> mapRow, bool readHeader = true) where T : new()
@@ -21,7 +21,7 @@ internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
         if (!workbook.TryGetWorksheet(worksheetName, out var worksheet))
             throw new ArgumentException($"Worksheet '{worksheetName}' not found", nameof(worksheetName));
 
-        return new TypedWorksheetExtractor<T>().ExtractDataFromWorksheet(worksheet, mapRow, readHeader);
+        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, mapRow, readHeader);
     }
 
     public List<T> ExtractData<T>(int worksheetIndex, bool readHeader = true) where T : new()
@@ -32,7 +32,7 @@ internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
                 $"Worksheet index must be between 1 and {workbook.Worksheets.Count}");
 
         var worksheet = workbook.Worksheet(worksheetIndex);
-        return new TypedWorksheetExtractor<T>().ExtractDataFromWorksheet(worksheet, readHeader);
+        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, readHeader);
     }
 
     public List<T> ExtractData<T>(int worksheetIndex, Func<IXLRangeRow, T> mapRow, bool readHeader = true) where T : new()
@@ -43,7 +43,7 @@ internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
                 $"Worksheet index must be between 1 and {workbook.Worksheets.Count}");
 
         var worksheet = workbook.Worksheet(worksheetIndex);
-        return new TypedWorksheetExtractor<T>().ExtractDataFromWorksheet(worksheet, mapRow, readHeader);
+        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, mapRow, readHeader);
     }
 
 }
