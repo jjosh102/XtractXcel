@@ -201,7 +201,9 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
                         property.SetValue(obj, result);
                         break;
                     default:
-                        throw new InvalidCastException($"Cannot convert '{value}' to {propertyType.FullName}");
+                        // Set to default enum value
+                        property.SetValue(obj, Enum.GetValues(underlyingType).GetValue(0)); 
+                        break;
                 }
             };
         }
