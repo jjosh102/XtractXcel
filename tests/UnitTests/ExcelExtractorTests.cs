@@ -488,7 +488,7 @@ public class ExcelExtractorTests
     }
 
     [Fact]
-    public void ExcelExtractor_WithManualMapping_ShouldThrowWhenExtractCalledWithoutDelegate()
+    public void ExcelExtractor_WithManualMapping_ShouldThrowExceptionWhenExtractCalledWithoutDelegate()
     {
         using var stream = TestExcelGenerator.CreateTestExcelFile();
         var extractor = new ExcelExtractor()

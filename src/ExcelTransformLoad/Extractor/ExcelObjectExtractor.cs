@@ -143,7 +143,7 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
             }
             else
             {
-                //If target object properties do not have the types set in SetterFactories, resolve here.
+                //If target object properties do not have the type set in SetterFactories, resolve here.
                 return CreateGenericSetter(property);
             }
         }
@@ -208,7 +208,7 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
             };
         }
 
-        // This is a fallback for a generic setter in case no specific setter is not found in SetterFactories
+        // This is a fallback for a generic setter in case no specific setter is found in SetterFactories
         var instance = Expression.Parameter(typeof(TObject), "instance");
         var value = Expression.Parameter(typeof(object), "value");
 
