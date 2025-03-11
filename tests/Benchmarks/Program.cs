@@ -47,7 +47,7 @@ namespace ExcelTransformLoad.Benchmarks
             _smallExcelStream.Position = 0;
             return new ExcelExtractor()
                 .WithHeader(true)
-                .WithSheetIndex(1)
+                .WithWorksheetIndex(1)
                 .FromStream(_smallExcelStream)
                 .Extract<Person>();
         }
@@ -58,7 +58,7 @@ namespace ExcelTransformLoad.Benchmarks
             _smallExcelStream.Position = 0;
             return new ExcelExtractor()
                 .WithHeader(true)
-                .WithSheetIndex(1)
+                .WithWorksheetIndex(1)
                 .FromStream(_smallExcelStream)
                 .ExtractWithManualMapping(row => new Person
                 {
@@ -76,7 +76,7 @@ namespace ExcelTransformLoad.Benchmarks
             _smallExcelStream.Position = 0;
             return new ExcelExtractor()
                 .WithHeader(true)
-                .WithSheetIndex(1)
+                .WithWorksheetIndex(1)
                 .FromStream(_smallExcelStream)
                 .ExtractWithManualMapping(row => new NoExcelAttributes
                 {
@@ -94,7 +94,7 @@ namespace ExcelTransformLoad.Benchmarks
             _mediumExcelStream.Position = 0;
             return new ExcelExtractor()
                 .WithHeader(true)
-                .WithSheetIndex(1)
+                .WithWorksheetIndex(1)
                 .FromStream(_mediumExcelStream)
                 .Extract<Person>();
         }
@@ -105,7 +105,7 @@ namespace ExcelTransformLoad.Benchmarks
             _mediumExcelStream.Position = 0;
             return new ExcelExtractor()
                 .WithHeader(true)
-                .WithSheetIndex(1)
+                .WithWorksheetIndex(1)
                 .FromStream(_mediumExcelStream)
                 .ExtractWithManualMapping(row => new Person
                 {
@@ -123,7 +123,7 @@ namespace ExcelTransformLoad.Benchmarks
             _largeExcelStream.Position = 0;
             return new ExcelExtractor()
                 .WithHeader(true)
-                .WithSheetIndex(1)
+                .WithWorksheetIndex(1)
                 .FromStream(_largeExcelStream)
                 .Extract<Person>();
         }
@@ -134,7 +134,7 @@ namespace ExcelTransformLoad.Benchmarks
             _largeExcelStream.Position = 0;
             return new ExcelExtractor()
                 .WithHeader(true)
-                .WithSheetIndex(1)
+                .WithWorksheetIndex(1)
                 .FromStream(_largeExcelStream)
                 .ExtractWithManualMapping(row => new Person
                 {
@@ -153,7 +153,7 @@ namespace ExcelTransformLoad.Benchmarks
             var stream = CreateTestExcelFileWithManyColumns();
             return new ExcelExtractor()
                 .WithHeader(true)
-                .WithSheetIndex(1)
+                .WithWorksheetIndex(1)
                 .FromStream(stream)
                 .Extract<Person>();
         }
@@ -164,7 +164,7 @@ namespace ExcelTransformLoad.Benchmarks
             var stream = CreateTestExcelFileWithManyColumns();
             return new ExcelExtractor()
                 .WithHeader(true)
-                .WithSheetIndex(1)
+                .WithWorksheetIndex(1)
                 .FromStream(stream)
                 .ExtractWithManualMapping(row => new Person
                 {

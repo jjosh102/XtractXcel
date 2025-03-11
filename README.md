@@ -42,7 +42,7 @@ using var stream = File.OpenRead("employees.xlsx");
 // Extract the data using a fluent API
 var people = new ExcelExtractor<Person>()
     .WithHeader(true)               // Excel file contains headers
-    .WithSheetIndex(1)              // Use the first sheet (1-based index)
+    .WithWorksheetIndex(1)              // Use the first sheet (1-based index)
     .FromStream(stream)             // Set the source stream
     .Extract();                     // Perform the extraction
 
@@ -56,7 +56,7 @@ foreach (var person in people) {
 ```csharp
 var people = new ExcelExtractor<Person>()
     .WithHeader(true)
-    .WithSheetIndex(1)
+    .WithWorksheetIndex(1)
     .FromFile("employees.xlsx")
     .Extract();
 ```
@@ -80,7 +80,7 @@ public class PersonNoHeader {
 // Extract the data
 var people = new ExcelExtractor<PersonNoHeader>()
     .WithHeader(false)              // Specify that there's no header row
-    .WithSheetIndex(1)
+    .WithWorksheetIndex(1)
     .FromFile("employees-no-header.xlsx")
     .Extract();
 ```
@@ -92,7 +92,7 @@ For more control over the extraction process, you can use manual mapping with a 
 // Extract data with manual mapping
 var people = new ExcelExtractor<Person>()
     .WithHeader(true)
-    .WithSheetIndex(1)
+    .WithWorksheetIndex(1)
     .WithManualMapping(row => new Person
     {
         Name = row.Cell(1).GetString(),
@@ -112,7 +112,7 @@ var people = new ExcelExtractor<Person>()
 // Read employee data with headers
 var employees = new ExcelExtractor<Person>()
     .WithHeader(true)
-    .WithSheetIndex(1)
+    .WithWorksheetIndex(1)
     .FromFile("employees.xlsx")
     .Extract();
 
@@ -127,7 +127,7 @@ var averageSalary = employees
 // Read raw data without headers
 var data = new ExcelExtractor<PersonNoHeader>()
     .WithHeader(false)
-    .WithSheetIndex(1)
+    .WithWorksheetIndex(1)
     .FromFile("data.xlsx")
     .Extract();
 ```
@@ -137,7 +137,7 @@ var data = new ExcelExtractor<PersonNoHeader>()
 // Read only specific columns
 var partialData = new ExcelExtractor<Person>()
     .WithHeader(true)
-    .WithSheetIndex(1)
+    .WithWorksheetIndex(1)
     .WithManualMapping(row => new Person
     {
         // Only map name and join date

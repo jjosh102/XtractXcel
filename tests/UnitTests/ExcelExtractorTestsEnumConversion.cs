@@ -35,7 +35,7 @@ public class ExcelExtractorTestsEnumConversion
 
         var extractor = new ExcelExtractor()
             .WithHeader(true)
-            .WithSheetIndex(1)
+            .WithWorksheetIndex(1)
             .FromStream(stream)
             .Extract<PersonWithEnumStatus>();
 
@@ -81,7 +81,7 @@ public class ExcelExtractorTestsEnumConversion
 
         var extractor = new ExcelExtractor()
             .WithHeader(false)
-            .WithSheetIndex(1)
+            .WithWorksheetIndex(1)
             .FromStream(stream)
             .Extract<PersonNoHeaderWithEnumStatus>();
 
