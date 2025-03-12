@@ -2,7 +2,7 @@ using ClosedXML.Excel;
 
 namespace ExcelTransformLoad.Extractor;
 
-public sealed record ExcelExtractor(
+public  record ExcelExtractor(
     string? FilePath = null,
     Stream? Stream = null,
     bool ReadHeader = true,
