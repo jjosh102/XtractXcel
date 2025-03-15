@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Xml.Serialization;
 using ClosedXML.Excel;
 
 namespace ExcelTransformLoad.Extractor;
@@ -6,7 +8,6 @@ public record ExcelExtractor(
     string? FilePath = null,
     Stream? Stream = null,
     bool ReadHeader = true,
-    bool IsMultipleExtraction = false,
     int? WorksheetIndex = null,
     string? WorksheetName = null
 )
@@ -17,8 +18,6 @@ public record ExcelExtractor(
         return this with { ReadHeader = readHeader };
     }
 
-    public ExcelExtractor WithMultipleWorksheets() =>
-        this with { IsMultipleExtraction = true, WorksheetName = null, WorksheetIndex = null };
 
     public ExcelExtractor WithWorksheetIndex(int workSheetIndex)
     {
@@ -52,7 +51,6 @@ public record ExcelExtractor(
     public List<T> Extract<T>() where T : new()
     {
         EnsureSourceIsSet();
-        EnsureNotToUseExtractWhenExtractingMultiple();
 
         var options = new ExcelDataSourceOptions { FilePath = FilePath, Stream = Stream };
 
@@ -72,7 +70,7 @@ public record ExcelExtractor(
     public List<T> ExtractWithManualMapping<T>(Func<IXLRangeRow, T> manualMapping) where T : new()
     {
         EnsureSourceIsSet();
-        EnsureNotToUseExtractWhenExtractingMultiple();
+
         if (manualMapping is null)
         {
             throw new InvalidOperationException(
@@ -94,16 +92,35 @@ public record ExcelExtractor(
         return new ExcelDataExtractor(options).ExtractData(1, manualMapping, ReadHeader);
     }
 
-    public ExcelExtractor ExtractWorksheet<T>(string worksheetName, out List<T> data) where T : new()
+    public string ExtractAsJson<T>() where T : new()
     {
         EnsureSourceIsSet();
-        EnsureNotExtractingMultiple();
 
-        var options = new ExcelDataSourceOptions { FilePath = FilePath, Stream = Stream };
-        data = new ExcelDataExtractor(options).ExtractData<T>(worksheetName, ReadHeader);
+        return SerializeToJson(Extract<T>());
 
-        return this;
+        static string SerializeToJson(List<T> data)
+        {
+            using var stream = new MemoryStream();
+            using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = false });
+            JsonSerializer.Serialize(writer, data);
+            return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+        }
     }
+
+    public string ExtractAsXml<T>() where T : new()
+    {
+        EnsureSourceIsSet();
+
+        return SerializeToXml(Extract<T>());
+
+        static string SerializeToXml(List<T> data)
+        {
+            using var stringWriter = new StringWriter();
+            new XmlSerializer(typeof(List<T>)).Serialize(stringWriter, data);
+            return stringWriter.ToString();
+        }
+    }
+
 
     private void EnsureSourceNotSet()
     {
@@ -118,17 +135,4 @@ public record ExcelExtractor(
             throw new InvalidOperationException("Data source (file or stream) is required before extraction.");
     }
 
-    private void EnsureNotToUseExtractWhenExtractingMultiple()
-    {
-        if (IsMultipleExtraction)
-            throw new InvalidOperationException(
-                "Cannot use Extract. Use ExtractMultiple when WithMultipleWorksheet is enabled.");
-    }
-
-    private void EnsureNotExtractingMultiple()
-    {
-        if (IsMultipleExtraction)
-            throw new InvalidOperationException(
-                "Cannot use WithWorksheetIndex or WithSheetName when extracting multiple worksheets.");
-    }
 }
