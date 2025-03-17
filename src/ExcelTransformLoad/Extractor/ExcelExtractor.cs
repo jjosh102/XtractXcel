@@ -12,6 +12,11 @@ public record ExcelExtractor(
     string? WorksheetName = null
 )
 {
+    public static ExcelExtractor Create()
+    {
+        return new ExcelExtractor();
+    }
+
     public ExcelExtractor WithHeader(bool readHeader)
     {
         EnsureSourceNotSet();

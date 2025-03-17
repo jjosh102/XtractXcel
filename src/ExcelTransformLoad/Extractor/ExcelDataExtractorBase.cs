@@ -40,6 +40,7 @@ internal abstract class ExcelDataExtractorBase : IDisposable
         if (!_isDisposed)
         {
             _workbook?.Dispose();
+            _options?.Stream?.Dispose();
             _workbook = null;
             _isDisposed = true;
         }
