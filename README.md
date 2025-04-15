@@ -1,11 +1,25 @@
 # XtractXcel
+[![NuGet](https://img.shields.io/nuget/v/XtractXcel.svg)](https://www.nuget.org/packages/XtractXcel)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/XtractXcel?logo=nuget)](https://www.nuget.org/packages/XtractXcel)
 
 ## Overview
 XtractXcel is a simple library for extracting data from Excel files using [ClosedXML](https://github.com/ClosedXML/ClosedXML), transforming it as needed, and loading it into your objects with minimal effort. It supports a variety of data types, flexible column mapping, and both attribute-based and manual mapping approaches.
 
 ## Getting Started
 
-### Installation (Coming soon)
+### Installing
+
+To install the package add the following line inside your csproj file with the latest version.
+
+```
+<PackageReference Include="XtractXcel" Version="x.x.x" />
+```
+
+An alternative is to install via the .NET CLI with the following command:
+
+```
+dotnet add package XtractXcel
+```
 
 
 ### Basic Usage
