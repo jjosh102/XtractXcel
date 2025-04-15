@@ -1,7 +1,7 @@
 # XtractXcel
 
 ## Overview
-XtractXcel is a robust .NET library for extracting data from Excel files using [ClosedXML](https://github.com/ClosedXML/ClosedXML), transforming it as needed, and loading it into your objects with minimal effort. It supports a variety of data types, flexible column mapping, and both attribute-based and manual mapping approaches.
+XtractXcel is a simple library for extracting data from Excel files using [ClosedXML](https://github.com/ClosedXML/ClosedXML), transforming it as needed, and loading it into your objects with minimal effort. It supports a variety of data types, flexible column mapping, and both attribute-based and manual mapping approaches.
 
 ## Getting Started
 
@@ -209,25 +209,45 @@ var customData = new ExcelExtractor()
     });
 ```
 
+### Exporting to JSON or XML
+
+You can also extract and directly convert your data into JSON or XML formats:
+
+```csharp
+// Extract as JSON
+string json = new ExcelExtractor()
+    .WithHeader(true)
+    .WithWorksheetIndex(1)
+    .FromFile("employees.xlsx")
+    .ExtractAsJson<Person>();
+
+// Extract as XML
+string xml = new ExcelExtractor()
+    .WithHeader(true)
+    .WithWorksheetIndex(1)
+    .FromFile("employees.xlsx")
+    .ExtractAsXml<Person>();
+```
+
+These methods use built-in serializers to quickly convert your extracted objects into JSON or XML strings, which can be saved, transmitted, or logged as needed.
+
 ## Performance Considerations
 
-Based on benchmarks, both attribute-based and manual mapping provide good performance:
+Benchmark results show that both attribute-based and manual mapping perform well, but manual mapping has a slight edge in certain cases.
 
 | Method                               | Mean       | Error     | StdDev    | Gen0      | Gen1      | Gen2      | Allocated |
-|------------------------------------- |-----------:|----------:|----------:|----------:|----------:|----------:|----------:|
-| SmallFile_AttributeMapping           |   3.330 ms | 0.0482 ms | 0.0403 ms |  140.6250 |   46.8750 |         - |   1.89 MB |
-| SmallFile_ManualMapping              |   2.740 ms | 0.0197 ms | 0.0154 ms |  148.4375 |   46.8750 |         - |   1.86 MB |
-| SmallFile_ManualMapping_NoAttributes |   2.766 ms | 0.0550 ms | 0.0540 ms |  148.4375 |   46.8750 |         - |   1.86 MB |
-| MediumFile_AttributeMapping          |  16.327 ms | 0.3255 ms | 0.5615 ms | 1000.0000 |  727.2727 |   90.9091 |  13.66 MB |
-| MediumFile_ManualMapping             |  15.806 ms | 0.3136 ms | 0.5492 ms | 1000.0000 |  700.0000 |  100.0000 |  13.67 MB |
-| LargeFile_AttributeMapping           | 177.912 ms | 3.4578 ms | 4.8473 ms | 9000.0000 | 4000.0000 | 2000.0000 | 129.31 MB |
-| LargeFile_ManualMapping              | 183.702 ms | 3.1083 ms | 2.7555 ms | 9000.0000 | 5000.0000 | 2000.0000 | 129.61 MB |
-| ManyColumns_AttributeMapping         |  27.877 ms | 0.5434 ms | 0.5815 ms | 1444.4444 |  888.8889 |  222.2222 |  18.74 MB |
-| ManyColumns_ManualMapping            |  27.434 ms | 0.4533 ms | 0.4241 ms | 1444.4444 |  888.8889 |  222.2222 |  18.69 MB |
-
-Manual mapping provides a slight performance edge for small files, while both approaches perform similarly for larger datasets.
+|-------------------------------------|-----------:|----------:|----------:|----------:|----------:|----------:|----------:|
+| SmallFile_AttributeMapping           |   2.685 ms | 0.0504 ms | 0.0539 ms |  148.4375 |   46.8750 |         - |   1.88 MB |
+| SmallFile_ManualMapping              |   2.600 ms | 0.0423 ms | 0.0375 ms |  148.4375 |   46.8750 |         - |   1.86 MB |
+| SmallFile_ManualMapping_NoAttributes |   2.613 ms | 0.0183 ms | 0.0171 ms |  148.4375 |   46.8750 |         - |   1.86 MB |
+| MediumFile_AttributeMapping          |  16.793 ms | 0.3305 ms | 0.4740 ms | 1000.0000 |  545.4545 |   90.9091 |  13.79 MB |
+| MediumFile_ManualMapping             |  16.172 ms | 0.3170 ms | 0.4647 ms | 1000.0000 |  454.5455 |   90.9091 |  13.66 MB |
+| LargeFile_AttributeMapping           | 174.138 ms | 3.4191 ms | 3.9374 ms | 9000.0000 | 5000.0000 | 2000.0000 | 130.90 MB |
+| LargeFile_ManualMapping              | 169.002 ms | 3.3734 ms | 5.4474 ms | 9000.0000 | 5000.0000 | 2000.0000 | 129.48 MB |
+| ManyColumns_AttributeMapping         |  27.434 ms | 0.5463 ms | 0.9711 ms | 1500.0000 |  750.0000 |  250.0000 |  18.69 MB |
+| ManyColumns_ManualMapping            |  27.409 ms | 0.5114 ms | 1.0095 ms | 1375.0000 |  625.0000 |  250.0000 |  18.65 MB |
 
 ## Why Use ExcelTransformLoad?
-If you're already using [ClosedXML](https://github.com/ClosedXML/ClosedXML) or similar libraries extensively, this one might not add much extra value. But if you're looking for a simple way to read an Excel file and load it into your objects without any hassle, this library is worth checking out!
+If you're already using [ClosedXML](https://github.com/ClosedXML/ClosedXML) or similar libraries extensively, this one might not add much extra value. But if you're looking for a simple way to read an Excel file and load it into your objects without any hassle, this might worth checking out.
 
-It's user-friendly and follows a fluent pattern, making it easy to define your options in a natural, intuitive way.
+

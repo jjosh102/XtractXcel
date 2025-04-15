@@ -12,6 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ExcelTransformLoad\ExcelTransformLoad.csproj" />
+    <ProjectReference Include="..\..\src\XtractXcel\XtractXcel.csproj" />
   </ItemGroup>
 </Project>

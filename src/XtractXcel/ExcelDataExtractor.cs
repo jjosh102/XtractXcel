@@ -1,6 +1,6 @@
 using ClosedXML.Excel;
 
-namespace ExcelTransformLoad.Extractor;
+namespace XtractXcel;
 
 internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
 {

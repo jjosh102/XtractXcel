@@ -1,7 +1,7 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using ClosedXML.Excel;
-using ExcelTransformLoad.Extractor;
+using XtractXcel;
 
 namespace ExcelTransformLoad.Benchmarks
 {

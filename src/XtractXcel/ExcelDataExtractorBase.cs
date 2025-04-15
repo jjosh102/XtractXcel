@@ -1,7 +1,7 @@
 
 using ClosedXML.Excel;
 
-namespace ExcelTransformLoad.Extractor;
+namespace XtractXcel;
 
 internal abstract class ExcelDataExtractorBase : IDisposable
 {

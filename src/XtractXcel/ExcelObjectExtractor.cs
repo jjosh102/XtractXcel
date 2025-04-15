@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using ClosedXML.Excel;
 
-namespace ExcelTransformLoad.Extractor;
+namespace XtractXcel;
 
 internal class ExcelObjectExtractor<TObject> where TObject : new()
 {

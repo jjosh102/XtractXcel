@@ -1,5 +1,5 @@
 
-namespace ExcelTransformLoad.Extractor;
+namespace XtractXcel;
 
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class ExcelColumnAttribute : Attribute

@@ -1,4 +1,4 @@
-namespace ExcelTransformLoad.Extractor;
+namespace XtractXcel;
 
 public record ExcelDataSourceOptions
 {

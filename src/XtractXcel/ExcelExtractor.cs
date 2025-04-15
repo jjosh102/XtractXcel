@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Xml.Serialization;
 using ClosedXML.Excel;
 
-namespace ExcelTransformLoad.Extractor;
+namespace XtractXcel;
 
 public record ExcelExtractor(
     string? FilePath = null,
