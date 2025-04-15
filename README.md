@@ -1,7 +1,7 @@
-# ExcelTransformLoad
+# XtractXcel
 
 ## Overview
-ExcelTransformLoad is a robust .NET library for extracting data from Excel files using [ClosedXML](https://github.com/ClosedXML/ClosedXML), transforming it as needed, and loading it into your objects with minimal effort. It supports a variety of data types, flexible column mapping, and both attribute-based and manual mapping approaches.
+XtractXcel is a robust .NET library for extracting data from Excel files using [ClosedXML](https://github.com/ClosedXML/ClosedXML), transforming it as needed, and loading it into your objects with minimal effort. It supports a variety of data types, flexible column mapping, and both attribute-based and manual mapping approaches.
 
 ## Getting Started
 
