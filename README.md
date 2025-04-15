@@ -261,7 +261,7 @@ Benchmark results show that both attribute-based and manual mapping perform well
 | ManyColumns_AttributeMapping         |  27.434 ms | 0.5463 ms | 0.9711 ms | 1500.0000 |  750.0000 |  250.0000 |  18.69 MB |
 | ManyColumns_ManualMapping            |  27.409 ms | 0.5114 ms | 1.0095 ms | 1375.0000 |  625.0000 |  250.0000 |  18.65 MB |
 
-## Why Use ExcelTransformLoad?
+## Why Use XtractXcel?
 If you're already using [ClosedXML](https://github.com/ClosedXML/ClosedXML) or similar libraries extensively, this one might not add much extra value. But if you're looking for a simple way to read an Excel file and load it into your objects without any hassle, this might worth checking out.
 
 
