@@ -4,8 +4,27 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Title>XtractXcel</Title>
+    <Version>0.0.1</Version>
+    <PackageIcon>jjosh-logo.png</PackageIcon>
+    <Authors>jjosh102</Authors>
+    <Description>XtractXcel is a simple .NET library for extracting data from Excel files using
+      ClosedXML, transforming it as needed, and loading it into your object.</Description>
+    <PackageId>XtractXcel</PackageId>
+    <PackageProjectUrl>https://www.nuget.org/packages/BrowserCache.Extensions</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jjosh102/XtractXcel</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <ContentTargetFolders>content</ContentTargetFolders>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="..\..\content\jjosh-logo.png" Pack="true" Visible="false" PackagePath="" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.104.2" />
   </ItemGroup>

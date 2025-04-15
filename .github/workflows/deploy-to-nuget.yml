@@ -1,0 +1,28 @@
+name: deploy-to-nuget
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  ubuntu-latest:
+    name: ubuntu-latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'Cache: .nuke/temp, ~/.nuget/packages'
+        uses: actions/cache@v4
+        with:
+          path: |
+            .nuke/temp
+            ~/.nuget/packages
+          key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
+      - name: Get version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+      - name: 'Run: Pack, Publish'
+        run: ./build.cmd Pack Publish
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          Version: ${{ steps.get_version.outputs.VERSION }}
