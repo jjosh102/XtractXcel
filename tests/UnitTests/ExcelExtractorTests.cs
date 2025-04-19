@@ -894,4 +894,70 @@ public class ExcelExtractorTests
         Assert.Contains("\"Age\":null", jsonData);
         Assert.Contains("\"Salary\":null", jsonData);
     }
+
+    [Fact]
+    public void ExcelExtractor_SaveAsXml_ShouldWriteValidXmlFile()
+    {
+        using var stream = TestExcelGenerator.CreateTestExcelFile();
+        var extractor = new ExcelExtractor()
+            .WithHeader(true)
+            .WithWorksheetIndex(1)
+            .FromStream(stream);
+
+        var tempFilePath = Path.GetTempFileName();
+        Console.WriteLine($"Temp file path: {tempFilePath}");
+
+        try
+        {
+            extractor.SaveAsXml<Person>(tempFilePath);
+
+            Assert.True(File.Exists(tempFilePath));
+
+            var xmlContent = File.ReadAllText(tempFilePath);
+            Assert.Contains("<Name>Alice</Name>", xmlContent);
+            Assert.Contains("<Age>25</Age>", xmlContent);
+            Assert.Contains("<Salary>50000.75</Salary>", xmlContent);
+            Assert.Contains("<JoinDate>2020-05-01", xmlContent);
+        }
+        finally
+        {
+            File.Delete(tempFilePath);
+        }
+    }
+
+    [Fact]
+    public void ExcelExtractor_SaveAsXlsx_ShouldWriteValidXlsxFile()
+    {
+        using var stream = TestExcelGenerator.CreateTestExcelFile();
+        var extractor = new ExcelExtractor()
+            .WithHeader(true)
+            .WithWorksheetIndex(1)
+            .FromStream(stream);
+
+        var tempFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".xlsx");
+        Console.WriteLine($"Temp file path: {tempFilePath}");
+
+        try
+        {
+
+            extractor.SaveAsXlsx<Person>(tempFilePath);
+
+            Assert.True(File.Exists(tempFilePath));
+
+            using var workbook = new XLWorkbook(tempFilePath);
+            var worksheet = workbook.Worksheet(1);
+
+            Assert.Equal("Full Name", worksheet.Cell(1, 1).GetString());
+            Assert.Equal("Age", worksheet.Cell(1, 2).GetString());
+            Assert.Equal("Salary", worksheet.Cell(1, 3).GetString());
+
+            Assert.Equal("Alice", worksheet.Cell(2, 1).GetString());
+            Assert.Equal(25, worksheet.Cell(2, 2).GetDouble());
+            Assert.Equal(50000.75, worksheet.Cell(2, 3).GetDouble());
+        }
+        finally
+        {
+            File.Delete(tempFilePath);
+        }
+    }
 }

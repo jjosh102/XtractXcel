@@ -11,6 +11,8 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
 
     private static readonly ConcurrentDictionary<Type, Func<PropertyInfo, Action<TObject, object?>>> SetterFactories = new();
 
+    private static readonly ConcurrentDictionary<Type, List<(PropertyInfo Property, ExcelColumnAttribute Attribute)>> CachedExcelColumnProperties = new();
+
     static ExcelObjectExtractor()
     {
         InitializeDefaultSetterFactories();
@@ -243,16 +245,26 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
 
     private static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetExcelColumnAttributeProperties()
     {
-        var propertiesWithAttributes = typeof(TObject).GetProperties()
-            .Select(p => new { Property = p, Attribute = p.GetCustomAttribute<ExcelColumnAttribute>() })
-            .Where(p => p.Attribute != null)
-            .Select(p => (p.Property, p.Attribute!))
-            .ToList();
+        return CachedExcelColumnProperties.GetOrAdd(typeof(TObject), type =>
+        {
+            var propertiesWithAttributes = type.GetProperties()
+                .Select(p => new { Property = p, Attribute = p.GetCustomAttribute<ExcelColumnAttribute>() })
+                .Where(p => p.Attribute != null)
+                .Select(p => (p.Property, p.Attribute!))
+                .ToList();
 
-        return propertiesWithAttributes.Count > 0
-            ? propertiesWithAttributes
-            : throw new InvalidOperationException(
-                $"No properties with {nameof(ExcelColumnAttribute)} found on type {typeof(TObject).Name}");
+            if (propertiesWithAttributes.Count == 0)
+            {
+                throw new InvalidOperationException($"No properties with {nameof(ExcelColumnAttribute)} found on type {type.Name}");
+            }
+
+            return propertiesWithAttributes;
+        });
+    }
+
+    public static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetCachedExcelColumnProperties()
+    {
+        return GetExcelColumnAttributeProperties();
     }
 
     private static List<PropertyInfo> GetProperties()

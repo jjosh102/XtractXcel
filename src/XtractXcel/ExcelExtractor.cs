@@ -126,6 +126,37 @@ public record ExcelExtractor(
         }
     }
 
+    public void SaveAsXml<T>(string filePath) where T : new()
+    {
+        EnsureSourceIsSet();
+
+        var data = Extract<T>();
+
+        using var writer = new StreamWriter(filePath);
+        var serializer = new XmlSerializer(typeof(List<T>));
+        serializer.Serialize(writer, data);
+    }
+
+    public void SaveAsXlsx<T>(string filePath) where T : new()
+    {
+        EnsureSourceIsSet();
+
+        var data = Extract<T>();
+
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add();
+
+        var propertiesWithAttributes = ExcelObjectExtractor<T>.GetCachedExcelColumnProperties();
+
+        for (int i = 0; i < propertiesWithAttributes.Count; i++)
+        {
+            worksheet.Cell(1, i + 1).Value = propertiesWithAttributes[i].Attribute.ColumnNames.FirstOrDefault() ?? propertiesWithAttributes[i].Property.Name;
+        }
+
+        // Add data starting from cell A2, below the header
+        worksheet.Cell(2, 1).InsertData(data);
+        workbook.SaveAs(filePath);
+    }
 
     private void EnsureSourceNotSet()
     {
