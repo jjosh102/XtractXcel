@@ -23,7 +23,6 @@ public record ExcelExtractor(
         return this with { ReadHeader = readHeader };
     }
 
-
     public ExcelExtractor WithWorksheetIndex(int workSheetIndex)
     {
         EnsureSourceNotSet();
@@ -39,7 +38,9 @@ public record ExcelExtractor(
     public ExcelExtractor FromFile(string filePath)
     {
         if (string.IsNullOrWhiteSpace(filePath))
+        {
             throw new ArgumentException("File path cannot be null or empty", nameof(filePath));
+        }
 
         EnsureSourceNotSet();
         return this with { FilePath = filePath, Stream = null };
@@ -47,13 +48,17 @@ public record ExcelExtractor(
 
     public ExcelExtractor FromStream(Stream stream)
     {
-        if (stream is null) throw new ArgumentNullException(nameof(stream), "Stream cannot be null");
+        if (stream is null)
+        {
+            throw new ArgumentNullException(nameof(stream), "Stream cannot be null");
+        }
 
         EnsureSourceNotSet();
         return this with { Stream = stream, FilePath = null };
     }
 
-    public List<T> Extract<T>() where T : new()
+    public List<T> Extract<T>()
+        where T : new()
     {
         EnsureSourceIsSet();
 
@@ -72,7 +77,8 @@ public record ExcelExtractor(
         return new ExcelDataExtractor(options).ExtractData<T>(1, ReadHeader);
     }
 
-    public List<T> ExtractWithManualMapping<T>(Func<IXLRangeRow, T> manualMapping) where T : new()
+    public List<T> ExtractWithManualMapping<T>(Func<IXLRangeRow, T> manualMapping)
+        where T : new()
     {
         EnsureSourceIsSet();
 
@@ -97,7 +103,8 @@ public record ExcelExtractor(
         return new ExcelDataExtractor(options).ExtractData(1, manualMapping, ReadHeader);
     }
 
-    public string ExtractAsJson<T>() where T : new()
+    public string ExtractAsJson<T>()
+        where T : new()
     {
         EnsureSourceIsSet();
 
@@ -112,7 +119,8 @@ public record ExcelExtractor(
         }
     }
 
-    public string ExtractAsXml<T>() where T : new()
+    public string ExtractAsXml<T>()
+        where T : new()
     {
         EnsureSourceIsSet();
 
@@ -126,7 +134,8 @@ public record ExcelExtractor(
         }
     }
 
-    public void SaveAsXml<T>(string filePath) where T : new()
+    public void ExtarctAsXml<T>(string filePath)
+        where T : new()
     {
         EnsureSourceIsSet();
 
@@ -137,7 +146,8 @@ public record ExcelExtractor(
         serializer.Serialize(writer, data);
     }
 
-    public void SaveAsXlsx<T>(string filePath) where T : new()
+    public void ExtarctAsXlsx<T>(string filePath)
+        where T : new()
     {
         EnsureSourceIsSet();
 
@@ -146,7 +156,7 @@ public record ExcelExtractor(
         using var workbook = new XLWorkbook();
         var worksheet = workbook.Worksheets.Add();
 
-        var propertiesWithAttributes = ExcelObjectExtractor<T>.GetCachedExcelColumnProperties();
+        var propertiesWithAttributes = ExcelDataExtractor.GetCachedExcelColumnProperties<T>();
 
         for (int i = 0; i < propertiesWithAttributes.Count; i++)
         {
@@ -161,14 +171,18 @@ public record ExcelExtractor(
     private void EnsureSourceNotSet()
     {
         if (FilePath is not null || Stream is not null)
+        {
             throw new InvalidOperationException(
                 "Source (file or stream) has already been set. Cannot modify settings after source is set.");
+        }
     }
 
     private void EnsureSourceIsSet()
     {
         if (FilePath is null && Stream is null)
+        {
             throw new InvalidOperationException("Data source (file or stream) is required before extraction.");
+        }
     }
 
 }

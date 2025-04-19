@@ -1,7 +1,7 @@
 ﻿using System.Xml.Serialization;
 using ClosedXML.Excel;
-using XtractXcel;
 using ExcelTransformLoad.UnitTests.TestHelpers;
+using XtractXcel;
 
 namespace ExcelTransformLoad.UnitTests;
 
@@ -127,7 +127,8 @@ public class ExcelExtractorTests
             .FromStream(stream);
 
         var exception = Assert.Throws<InvalidOperationException>(() => extractor.Extract<NoExcelAttributes>());
-        Assert.Equal($"No properties with {nameof(ExcelColumnAttribute)} found on type NoExcelAttributes",
+        Assert.Equal(
+            $"No properties with {nameof(ExcelColumnAttribute)} found on type NoExcelAttributes",
             exception.Message);
     }
 
@@ -370,7 +371,6 @@ public class ExcelExtractorTests
                 LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : null
             });
 
-
         Assert.NotNull(extractedData);
         Assert.Equal(2, extractedData.Count);
         Assert.Equal("Dave", extractedData[0].Name);
@@ -470,7 +470,6 @@ public class ExcelExtractorTests
                 JoinDate = row.Cell(4).GetDateTime()
             });
 
-
         Assert.NotNull(extractedData);
         Assert.Equal(3, extractedData.Count);
         Assert.Equal("Alice", extractedData[0].Name);
@@ -549,7 +548,6 @@ public class ExcelExtractorTests
         Assert.Equal(new TimeSpan(9, 0, 0), extractedData[0].WorkStartTime);
         Assert.Equal(new TimeSpan(13, 30, 0), extractedData[1].WorkStartTime);
     }
-
 
     [Fact]
     public void ExcelExtractor_ShouldThrowExceptionWhenWorksheetIndexIsInvalid()
@@ -633,9 +631,7 @@ public class ExcelExtractorTests
         Assert.Equal(Guid.Empty, extractedData[1].UserId);
 
         Assert.Equal("Charlie", extractedData[2].Name);
-
     }
-
 
     [Fact]
     public void ExcelExtractor_WithoutHeader_ShouldParseGuid()
@@ -691,6 +687,7 @@ public class ExcelExtractorTests
 
             workbook.SaveAs(stream);
         }
+
         stream.Position = 0;
 
         var extractor = new ExcelExtractor()
@@ -791,7 +788,6 @@ public class ExcelExtractorTests
         Assert.Contains("<Person>", xmlData);
         Assert.Contains("<Name>Bob</Name>", xmlData);
         Assert.Contains(@"<Age xsi:nil=""true"" />", xmlData.Substring(xmlData.IndexOf("<Name>Bob</Name>")));
-
     }
 
     [Fact]
@@ -813,7 +809,6 @@ public class ExcelExtractorTests
             .WithWorksheetIndex(1)
             .FromStream(stream)
             .ExtractAsXml<Person>();
-
 
         Assert.NotNull(xmlData);
         Assert.Contains("ArrayOfPerson", xmlData);
@@ -896,7 +891,7 @@ public class ExcelExtractorTests
     }
 
     [Fact]
-    public void ExcelExtractor_SaveAsXml_ShouldWriteValidXmlFile()
+    public void ExcelExtractor_ExtarctAsXml_ShouldWriteValidXmlFile()
     {
         using var stream = TestExcelGenerator.CreateTestExcelFile();
         var extractor = new ExcelExtractor()
@@ -909,7 +904,7 @@ public class ExcelExtractorTests
 
         try
         {
-            extractor.SaveAsXml<Person>(tempFilePath);
+            extractor.ExtarctAsXml<Person>(tempFilePath);
 
             Assert.True(File.Exists(tempFilePath));
 
@@ -926,7 +921,7 @@ public class ExcelExtractorTests
     }
 
     [Fact]
-    public void ExcelExtractor_SaveAsXlsx_ShouldWriteValidXlsxFile()
+    public void ExcelExtractor_ExtarctAsXlsx_ShouldWriteValidXlsxFile()
     {
         using var stream = TestExcelGenerator.CreateTestExcelFile();
         var extractor = new ExcelExtractor()
@@ -939,8 +934,7 @@ public class ExcelExtractorTests
 
         try
         {
-
-            extractor.SaveAsXlsx<Person>(tempFilePath);
+            extractor.ExtarctAsXlsx<Person>(tempFilePath);
 
             Assert.True(File.Exists(tempFilePath));
 

@@ -1,0 +1,21 @@
+<Project>
+  <PropertyGroup>
+      <EnableNETAnalyzers>true</EnableNETAnalyzers>
+      <RunCodeAnalysis>true</RunCodeAnalysis>
+      <StyleCopAnalyzersEnabled>true</StyleCopAnalyzersEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <PackageReference Include="StyleCop.Analyzers">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      </PackageReference>
+
+      <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      </PackageReference>
+  </ItemGroup>
+
+
+</Project>

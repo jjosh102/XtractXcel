@@ -26,9 +26,7 @@ public class PersonWithSpecificColumns
 
     [ExcelColumn("Salary")]
     public decimal? SalaryOnly { get; init; }
-
 }
-
 
 public class NoExcelAttributes
 {
@@ -66,7 +64,6 @@ public class PersonWithTimeOnly
     public TimeSpan WorkStartTime { get; init; }
 }
 
-
 public class PersonWithGuidAndEnum
 {
     [ExcelColumn("Name")]
@@ -74,7 +71,6 @@ public class PersonWithGuidAndEnum
 
     [ExcelColumn("UserId")]
     public Guid UserId { get; set; }
-    
 }
 
 public class PersonNoHeaderWithGuidAndEnum
@@ -82,5 +78,4 @@ public class PersonNoHeaderWithGuidAndEnum
     public string Name { get; set; } = string.Empty;
 
     public Guid? UserId { get; set; }
-    
 }
