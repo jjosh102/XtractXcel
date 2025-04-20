@@ -70,5 +70,4 @@ public static class TestExcelGenerator
         stream.Position = 0;
         return stream;
     }
-
 }

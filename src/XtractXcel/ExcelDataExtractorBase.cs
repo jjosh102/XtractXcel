@@ -1,6 +1,4 @@
-
 using ClosedXML.Excel;
-
 namespace XtractXcel;
 
 internal abstract class ExcelDataExtractorBase : IDisposable
@@ -8,6 +6,16 @@ internal abstract class ExcelDataExtractorBase : IDisposable
     private readonly ExcelDataSourceOptions _options;
     private XLWorkbook? _workbook;
     private bool _isDisposed = false;
+    public void Dispose()
+    {
+        if (!_isDisposed)
+        {
+            _workbook?.Dispose();
+            _options?.Stream?.Dispose();
+            _workbook = null;
+            _isDisposed = true;
+        }
+    }
 
     protected ExcelDataExtractorBase(ExcelDataSourceOptions options)
     {
@@ -33,16 +41,5 @@ internal abstract class ExcelDataExtractorBase : IDisposable
         }
 
         return _workbook;
-    }
-
-    public void Dispose()
-    {
-        if (!_isDisposed)
-        {
-            _workbook?.Dispose();
-            _options?.Stream?.Dispose();
-            _workbook = null;
-            _isDisposed = true;
-        }
     }
 }

@@ -1,19 +1,86 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
+
 using ClosedXML.Excel;
 
 namespace XtractXcel;
 
-internal class ExcelObjectExtractor<TObject> where TObject : new()
+internal sealed class ExcelObjectExtractor<TObject>
+    where TObject : new()
 {
     private static readonly ConcurrentDictionary<PropertyInfo, Action<TObject, object?>> PropertySetters = [];
 
     private static readonly ConcurrentDictionary<Type, Func<PropertyInfo, Action<TObject, object?>>> SetterFactories = new();
 
+    private static readonly ConcurrentDictionary<Type, List<(PropertyInfo Property, ExcelColumnAttribute Attribute)>> CachedExcelColumnProperties = new();
+
     static ExcelObjectExtractor()
     {
         InitializeDefaultSetterFactories();
+    }
+
+    internal static void RegisterConverter<TProperty>(Func<PropertyInfo, Action<TObject, object?>> converter)
+    {
+        var propType = typeof(TProperty);
+
+        if (!SetterFactories.TryAdd(propType, converter))
+        {
+            throw new InvalidOperationException($"A converter for type '{propType.Name}' is already registered.");
+        }
+    }
+
+    internal static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetCachedExcelColumnProperties()
+    {
+        return GetExcelColumnAttributeProperties();
+    }
+
+    internal List<TObject> ExtractDataFromWorksheet(IXLWorksheet worksheet, bool readHeader)
+    {
+        var extractedData = new List<TObject>();
+        var excelRange = worksheet.RangeUsed();
+        if (excelRange is null)
+        {
+            return extractedData;
+        }
+
+        var excelRows = readHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
+        var mappings = BuildAttributeMappings(worksheet, readHeader);
+
+        foreach (var row in excelRows)
+        {
+            var obj = new TObject();
+            foreach ((int colIndex, Action<TObject, object?> setter) in mappings)
+            {
+                try
+                {
+                    setter(obj, GetCellValue(row.Cell(colIndex)));
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Error setting value for column {colIndex} in row {row.RowNumber()}", ex);
+                }
+            }
+
+            extractedData.Add(obj);
+        }
+
+        return extractedData;
+    }
+
+    internal List<TObject> ExtractDataFromWorksheet(IXLWorksheet worksheet, Func<IXLRangeRow, TObject> mapRow, bool readHeader)
+    {
+        var excelRange = worksheet.RangeUsed();
+
+        if (excelRange is null)
+        {
+            return [];
+        }
+
+        var excelRows = readHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
+
+        return excelRows.Select(mapRow).ToList();
     }
 
     private static void InitializeDefaultSetterFactories()
@@ -42,61 +109,9 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
         SetterFactories[typeof(Guid)] = prop => CreateValueSetter(prop, value => Guid.Parse(value.ToString()!));
         SetterFactories[typeof(Guid?)] = prop => CreateNullableValueSetter(prop, value => Guid.Parse(value.ToString()!));
     }
-    
-    public static void RegisterConverter<TProperty>(Func<PropertyInfo, Action<TObject, object?>> converter)
-    {
-        var propType = typeof(TProperty);
 
-        if (!SetterFactories.TryAdd(propType, converter))
-        {
-            throw new InvalidOperationException($"A converter for type '{propType.Name}' is already registered.");
-        }
-    }
-
-    public List<TObject> ExtractDataFromWorksheet(IXLWorksheet worksheet, bool readHeader)
-    {
-        var extractedData = new List<TObject>();
-        var excelRange = worksheet.RangeUsed();
-        if (excelRange is null) return extractedData;
-
-        var excelRows = readHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
-        var mappings = BuildAttributeMappings(worksheet, readHeader);
-
-        foreach (var row in excelRows)
-        {
-            var obj = new TObject();
-            foreach ((int colIndex, Action<TObject, object?> setter) in mappings)
-            {
-                try
-                {
-                    setter(obj, GetCellValue(row.Cell(colIndex)));
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException(
-                        $"Error setting value for column {colIndex} in row {row.RowNumber()}", ex);
-                }
-            }
-
-            extractedData.Add(obj);
-        }
-
-        return extractedData;
-    }
-
-    public List<TObject> ExtractDataFromWorksheet(IXLWorksheet worksheet, Func<IXLRangeRow, TObject> mapRow,
-        bool readHeader)
-    {
-        var excelRange = worksheet.RangeUsed();
-
-        if (excelRange is null) return [];
-
-        var excelRows = readHeader ? excelRange.RowsUsed().Skip(1) : excelRange.RowsUsed();
-
-        return excelRows.Select(mapRow).ToList();
-    }
-
-    private static Dictionary<int, Action<TObject, object?>> BuildAttributeMappings(IXLWorksheet worksheet,
+    private static Dictionary<int, Action<TObject, object?>> BuildAttributeMappings(
+        IXLWorksheet worksheet,
         bool readHeader)
     {
         var mappings = new Dictionary<int, Action<TObject, object?>>();
@@ -130,7 +145,6 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
         return mappings;
     }
 
-
     private static Action<TObject, object?> GetSetterForProperty(PropertyInfo property)
     {
         return PropertySetters.GetOrAdd(property, CreateSetterForProperty);
@@ -143,14 +157,16 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
             }
             else
             {
-                //If target object properties do not have the type set in SetterFactories, resolve here.
+                // If target object properties do not have the type set in SetterFactories, resolve here.
                 return CreateGenericSetter(property);
             }
         }
     }
 
-    private static Action<TObject, object?> CreateValueSetter<TValue>(PropertyInfo property,
-        Func<object, TValue> converter) where TValue : struct
+    private static Action<TObject, object?> CreateValueSetter<TValue>(
+        PropertyInfo property,
+        Func<object, TValue> converter)
+        where TValue : struct
     {
         return (obj, value) =>
         {
@@ -165,8 +181,10 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
         };
     }
 
-    private static Action<TObject, object?> CreateNullableValueSetter<TValue>(PropertyInfo property,
-        Func<object, TValue> converter) where TValue : struct
+    private static Action<TObject, object?> CreateNullableValueSetter<TValue>(
+        PropertyInfo property,
+        Func<object, TValue> converter)
+        where TValue : struct
     {
         return (obj, value) =>
         {
@@ -180,7 +198,6 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
             }
         };
     }
-
 
     private static Action<TObject, object?> CreateGenericSetter(PropertyInfo property)
     {
@@ -202,7 +219,7 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
                         break;
                     default:
                         // Set to default enum value
-                        property.SetValue(obj, Enum.GetValues(underlyingType).GetValue(0)); 
+                        property.SetValue(obj, Enum.GetValues(underlyingType).GetValue(0));
                         break;
                 }
             };
@@ -212,10 +229,13 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
         var instance = Expression.Parameter(typeof(TObject), "instance");
         var value = Expression.Parameter(typeof(object), "value");
 
-
         var convertedValue = Expression.Convert(
-            Expression.Call(typeof(Convert).GetMethod(nameof(Convert.ChangeType), [typeof(object), typeof(Type)])!,
-                value, Expression.Constant(underlyingType)),
+            Expression.Call(
+                typeof(Convert).GetMethod(
+                    nameof(Convert.ChangeType),
+                    [typeof(object), typeof(Type)])!,
+                value,
+                Expression.Constant(underlyingType)),
             propertyType);
 
         var assign = Expression.Assign(Expression.Property(instance, property), convertedValue);
@@ -227,7 +247,9 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
         var type = cell.Value.Type;
 
         if (type == XLDataType.Blank)
+        {
             return null;
+        }
 
         return type switch
         {
@@ -243,16 +265,21 @@ internal class ExcelObjectExtractor<TObject> where TObject : new()
 
     private static List<(PropertyInfo Property, ExcelColumnAttribute Attribute)> GetExcelColumnAttributeProperties()
     {
-        var propertiesWithAttributes = typeof(TObject).GetProperties()
-            .Select(p => new { Property = p, Attribute = p.GetCustomAttribute<ExcelColumnAttribute>() })
-            .Where(p => p.Attribute != null)
-            .Select(p => (p.Property, p.Attribute!))
-            .ToList();
+        return CachedExcelColumnProperties.GetOrAdd(typeof(TObject), type =>
+        {
+            var propertiesWithAttributes = type.GetProperties()
+                .Select(p => new { Property = p, Attribute = p.GetCustomAttribute<ExcelColumnAttribute>() })
+                .Where(p => p.Attribute != null)
+                .Select(p => (p.Property, p.Attribute!))
+                .ToList();
 
-        return propertiesWithAttributes.Count > 0
-            ? propertiesWithAttributes
-            : throw new InvalidOperationException(
-                $"No properties with {nameof(ExcelColumnAttribute)} found on type {typeof(TObject).Name}");
+            if (propertiesWithAttributes.Count == 0)
+            {
+                throw new InvalidOperationException($"No properties with {nameof(ExcelColumnAttribute)} found on type {type.Name}");
+            }
+
+            return propertiesWithAttributes;
+        });
     }
 
     private static List<PropertyInfo> GetProperties()

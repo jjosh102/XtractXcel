@@ -1,4 +1,3 @@
-
 namespace XtractXcel;
 
 [AttributeUsage(AttributeTargets.Property)]

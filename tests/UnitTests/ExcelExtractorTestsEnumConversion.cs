@@ -55,8 +55,6 @@ public class ExcelExtractorTestsEnumConversion
         Assert.Equal(UserStatus.None, extractor[3].Status);
     }
 
-
-
     [Fact]
     public void ExcelExtractor_WithoutHeader_ShouldParseEnumProperties()
     {
@@ -98,7 +96,6 @@ public class ExcelExtractorTestsEnumConversion
         Assert.Equal(UserStatus.None, extractor[2].Status);
     }
 
-
     public enum UserStatus
     {
         None,
@@ -107,12 +104,13 @@ public class ExcelExtractorTestsEnumConversion
         Suspended
     }
 
-
     public class PersonWithEnumStatus
     {
-        [ExcelColumn("Name")] public string? Name { get; set; }
+        [ExcelColumn("Name")]
+        public string? Name { get; set; }
 
-        [ExcelColumn("Status")] public UserStatus Status { get; set; }
+        [ExcelColumn("Status")]
+        public UserStatus Status { get; set; }
     }
 
     public class PersonNoHeaderWithEnumStatus
