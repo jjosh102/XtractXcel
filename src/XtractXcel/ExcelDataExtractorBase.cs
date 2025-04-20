@@ -1,5 +1,4 @@
 using ClosedXML.Excel;
-
 namespace XtractXcel;
 
 internal abstract class ExcelDataExtractorBase : IDisposable

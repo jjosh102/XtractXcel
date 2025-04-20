@@ -1,8 +1,10 @@
 # XtractXcel
+
 [![NuGet](https://img.shields.io/nuget/v/XtractXcel.svg)](https://www.nuget.org/packages/XtractXcel)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/XtractXcel?logo=nuget)](https://www.nuget.org/packages/XtractXcel)
 
 ## Overview
+
 XtractXcel is a simple library for extracting data from Excel files using [ClosedXML](https://github.com/ClosedXML/ClosedXML), transforming it as needed, and loading it into your objects with minimal effort. It supports a variety of data types, flexible column mapping, and both attribute-based and manual mapping approaches.
 
 ## Getting Started
@@ -11,20 +13,20 @@ XtractXcel is a simple library for extracting data from Excel files using [Close
 
 To install the package add the following line inside your csproj file with the latest version.
 
-```
+```xml
 <PackageReference Include="XtractXcel" Version="x.x.x" />
 ```
 
 An alternative is to install via the .NET CLI with the following command:
 
-```
+```xml
 dotnet add package XtractXcel
 ```
-
 
 ### Basic Usage
 
 #### 1. Define your model with ExcelColumn attributes
+
 ```csharp
 public class Person {
     [ExcelColumn("Full Name", "Name", "Employee Name")]
@@ -49,6 +51,7 @@ The `ExcelColumn` attribute maps Excel column headers to C# properties. You can 
 #### 2. Extract data from Excel
 
 ##### From a Stream
+
 ```csharp
 // Get a stream from a file, memory, or any other source
 using var stream = File.OpenRead("employees.xlsx");
@@ -67,6 +70,7 @@ foreach (var person in people) {
 ```
 
 ##### From a File
+
 ```csharp
 var people = new ExcelExtractor()
     .WithHeader(true)
@@ -78,6 +82,7 @@ var people = new ExcelExtractor()
 ## Advanced Features
 
 ### Working with Files Without Headers
+
 For Excel files without headers, you can use column position for extraction:
 
 ```csharp
@@ -100,6 +105,7 @@ var people = new ExcelExtractor()
 ```
 
 ### Manual Mapping
+
 For more control over the extraction process, you can use manual mapping:
 
 ```csharp

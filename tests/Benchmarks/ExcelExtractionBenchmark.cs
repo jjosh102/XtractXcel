@@ -1,8 +1,5 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
-
 using ClosedXML.Excel;
-
 using XtractXcel;
 
 namespace ExcelTransformLoad.Benchmarks
