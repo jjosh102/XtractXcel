@@ -223,27 +223,70 @@ var customData = new ExcelExtractor()
     });
 ```
 
-### Exporting to JSON or XML
+### Saving Extracted Data
 
-You can also extract and directly convert your data into JSON or XML formats:
+The `ExcelExtractor` class now supports saving extracted data into various formats using extension methods. Here are some examples:
+
+#### Save as JSON
 
 ```csharp
-// Extract as JSON
-string json = new ExcelExtractor()
+using var stream = File.OpenRead("employees.xlsx");
+var extractor = new ExcelExtractor()
     .WithHeader(true)
     .WithWorksheetIndex(1)
-    .FromFile("employees.xlsx")
-    .ExtractAsJson<Person>();
+    .FromStream(stream);
 
-// Extract as XML
-string xml = new ExcelExtractor()
-    .WithHeader(true)
-    .WithWorksheetIndex(1)
-    .FromFile("employees.xlsx")
-    .ExtractAsXml<Person>();
+string json = extractor.Extract<Person>().SaveAsJson();
+Console.WriteLine(json);
 ```
 
-These methods use built-in serializers to quickly convert your extracted objects into JSON or XML strings, which can be saved, transmitted, or logged as needed.
+#### Save as XML
+
+```csharp
+using var stream = File.OpenRead("employees.xlsx");
+var extractor = new ExcelExtractor()
+    .WithHeader(true)
+    .WithWorksheetIndex(1)
+    .FromStream(stream);
+
+string xml = extractor.Extract<Person>().SaveAsXml();
+Console.WriteLine(xml);
+```
+
+#### Save as XLSX
+
+```csharp
+using var stream = File.OpenRead("employees.xlsx");
+var extractor = new ExcelExtractor()
+    .WithHeader(true)
+    .WithWorksheetIndex(1)
+    .FromStream(stream);
+
+extractor.Extract<Person>().SaveAsXlsx("output.xlsx");
+Console.WriteLine("Data saved to output.xlsx");
+```
+
+#### Save Manually Mapped Data as XLSX
+
+```csharp
+using var stream = File.OpenRead("employees.xlsx");
+var extractor = new ExcelExtractor()
+    .WithHeader(true)
+    .WithWorksheetIndex(1)
+    .FromStream(stream);
+
+var manuallyMappedData = extractor.ExtractWithManualMapping(row => new Person
+{
+    Name = row.Cell(1).GetString()?.ToUpper(), // Convert names to uppercase
+    Age = !row.Cell(2).IsEmpty() ? (int)(row.Cell(2).GetDouble() * 2) : null, // Double the age
+    Salary = !row.Cell(3).IsEmpty() ? (decimal)(row.Cell(3).GetDouble() / 2) : null, // Halve the salary
+    JoinDate = row.Cell(4).GetDateTime().AddYears(1), // Add a year to join dates
+    LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : DateTime.Now // Use current date for missing activity dates
+});
+
+manuallyMappedData.SaveAsXlsx("manually_mapped_output.xlsx");
+Console.WriteLine("Manually mapped data saved to manually_mapped_output.xlsx");
+```
 
 ## Performance Considerations
 
@@ -262,6 +305,5 @@ Benchmark results show that both attribute-based and manual mapping perform well
 | ManyColumns_ManualMapping            |  27.409 ms | 0.5114 ms | 1.0095 ms | 1375.0000 |  625.0000 |  250.0000 |  18.65 MB |
 
 ## Why Use XtractXcel?
-If you're already using [ClosedXML](https://github.com/ClosedXML/ClosedXML) or similar libraries extensively, this one might not add much extra value. But if you're looking for a simple way to read an Excel file and load it into your objects without any hassle, this might worth checking out.
 
-
+If you're already using [ClosedXML](https://github.com/ClosedXML/ClosedXML) or similar libraries extensively, this one might not add much extra value. But if you're looking for a simple way to read an Excel file and load it into your objects without any hassle, this might worth checking out .

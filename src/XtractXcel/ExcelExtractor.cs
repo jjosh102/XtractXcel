@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Xml.Serialization;
 using ClosedXML.Excel;
 
 namespace XtractXcel;
@@ -101,71 +99,6 @@ public record ExcelExtractor(
         }
 
         return new ExcelDataExtractor(options).ExtractData(1, manualMapping, ReadHeader);
-    }
-
-    public string ExtractAsJson<T>()
-        where T : new()
-    {
-        EnsureSourceIsSet();
-
-        return SerializeToJson(Extract<T>());
-
-        static string SerializeToJson(List<T> data)
-        {
-            using var stream = new MemoryStream();
-            using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = false });
-            JsonSerializer.Serialize(writer, data);
-            return System.Text.Encoding.UTF8.GetString(stream.ToArray());
-        }
-    }
-
-    public string ExtractAsXml<T>()
-        where T : new()
-    {
-        EnsureSourceIsSet();
-
-        return SerializeToXml(Extract<T>());
-
-        static string SerializeToXml(List<T> data)
-        {
-            using var stringWriter = new StringWriter();
-            new XmlSerializer(typeof(List<T>)).Serialize(stringWriter, data);
-            return stringWriter.ToString();
-        }
-    }
-
-    public void ExtarctAsXml<T>(string filePath)
-        where T : new()
-    {
-        EnsureSourceIsSet();
-
-        var data = Extract<T>();
-
-        using var writer = new StreamWriter(filePath);
-        var serializer = new XmlSerializer(typeof(List<T>));
-        serializer.Serialize(writer, data);
-    }
-
-    public void ExtarctAsXlsx<T>(string filePath)
-        where T : new()
-    {
-        EnsureSourceIsSet();
-
-        var data = Extract<T>();
-
-        using var workbook = new XLWorkbook();
-        var worksheet = workbook.Worksheets.Add();
-
-        var propertiesWithAttributes = ExcelDataExtractor.GetCachedExcelColumnProperties<T>();
-
-        for (int i = 0; i < propertiesWithAttributes.Count; i++)
-        {
-            worksheet.Cell(1, i + 1).Value = propertiesWithAttributes[i].Attribute.ColumnNames.FirstOrDefault() ?? propertiesWithAttributes[i].Property.Name;
-        }
-
-        // Add data starting from cell A2, below the header
-        worksheet.Cell(2, 1).InsertData(data);
-        workbook.SaveAs(filePath);
     }
 
     private void EnsureSourceNotSet()

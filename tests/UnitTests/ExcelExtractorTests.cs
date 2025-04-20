@@ -699,133 +699,6 @@ public class ExcelExtractorTests
     }
 
     [Fact]
-    public void ExcelExtractor_ExtractAsJson_ShouldReturnValidJsonData()
-    {
-        using var stream = TestExcelGenerator.CreateTestExcelFile();
-        var jsonData = new ExcelExtractor()
-            .WithHeader(true)
-            .WithWorksheetIndex(1)
-            .FromStream(stream)
-            .ExtractAsJson<Person>();
-
-        Assert.NotNull(jsonData);
-        Assert.Contains("Alice", jsonData);
-        Assert.Contains("50000.75", jsonData);
-        Assert.Contains("2020-05-01", jsonData);
-    }
-
-    [Fact]
-    public void ExcelExtractor_ExtractAsJson_ShouldHandleEmptyData()
-    {
-        using var stream = new MemoryStream();
-        using (var workbook = new XLWorkbook())
-        {
-            var worksheet = workbook.AddWorksheet("Sheet1");
-            worksheet.Cell(1, 1).Value = "Name";
-            worksheet.Cell(1, 2).Value = "Age";
-            workbook.SaveAs(stream);
-        }
-
-        stream.Position = 0;
-
-        var jsonData = new ExcelExtractor()
-            .WithHeader(true)
-            .WithWorksheetIndex(1)
-            .FromStream(stream)
-            .ExtractAsJson<Person>();
-
-        Assert.NotNull(jsonData);
-        Assert.Equal("[]", jsonData);
-    }
-
-    [Fact]
-    public void ExcelExtractor_ExtractAsJson_ShouldThrowWhenNoSourceIsSet()
-    {
-        var extractor = new ExcelExtractor()
-            .WithHeader(true)
-            .WithWorksheetIndex(1);
-
-        Assert.Throws<InvalidOperationException>(() => extractor.ExtractAsJson<Person>());
-    }
-
-    [Fact]
-    public void ExcelExtractor_ExtractAsXml_ShouldReturnValidXmlData()
-    {
-        using var stream = TestExcelGenerator.CreateTestExcelFile();
-        var xmlData = new ExcelExtractor()
-            .WithHeader(true)
-            .WithWorksheetIndex(1)
-            .FromStream(stream)
-            .ExtractAsXml<Person>();
-
-        Assert.NotNull(xmlData);
-        Assert.Contains("<Name>Alice</Name>", xmlData);
-        Assert.Contains("<Age>25</Age>", xmlData);
-        Assert.Contains("<Salary>50000.75</Salary>", xmlData);
-        Assert.Contains("<JoinDate>2020-05-01", xmlData);
-    }
-
-    [Fact]
-    public void ExcelExtractor_ExtractAsXml_ShouldHandleNullValues()
-    {
-        using var stream = TestExcelGenerator.CreateTestExcelFile();
-        var xmlData = new ExcelExtractor()
-            .WithHeader(true)
-            .WithWorksheetIndex(1)
-            .FromStream(stream)
-            .ExtractAsXml<Person>();
-
-        Assert.NotNull(xmlData);
-
-        var data = new ExcelExtractor()
-            .WithHeader(true)
-            .WithWorksheetIndex(1)
-            .FromStream(stream)
-            .Extract<Person>();
-
-        Assert.Null(data[1].Age);
-        Assert.Null(data[1].Salary);
-        Assert.Contains("<Person>", xmlData);
-        Assert.Contains("<Name>Bob</Name>", xmlData);
-        Assert.Contains(@"<Age xsi:nil=""true"" />", xmlData.Substring(xmlData.IndexOf("<Name>Bob</Name>")));
-    }
-
-    [Fact]
-    public void ExcelExtractor_ExtractAsXml_ShouldHandleEmptyData()
-    {
-        using var stream = new MemoryStream();
-        using (var workbook = new XLWorkbook())
-        {
-            var worksheet = workbook.AddWorksheet("Sheet1");
-            worksheet.Cell(1, 1).Value = "Name";
-            worksheet.Cell(1, 2).Value = "Age";
-            workbook.SaveAs(stream);
-        }
-
-        stream.Position = 0;
-
-        var xmlData = new ExcelExtractor()
-            .WithHeader(true)
-            .WithWorksheetIndex(1)
-            .FromStream(stream)
-            .ExtractAsXml<Person>();
-
-        Assert.NotNull(xmlData);
-        Assert.Contains("ArrayOfPerson", xmlData);
-        Assert.DoesNotContain("<Person>", xmlData);
-    }
-
-    [Fact]
-    public void ExcelExtractor_ExtractAsXml_ShouldThrowWhenNoSourceIsSet()
-    {
-        var extractor = new ExcelExtractor()
-            .WithHeader(true)
-            .WithWorksheetIndex(1);
-
-        Assert.Throws<InvalidOperationException>(() => extractor.ExtractAsXml<Person>());
-    }
-
-    [Fact]
     public void ExcelExtractor_ExtractAsJson_WithManualMapping_ShouldReturnValidJsonData()
     {
         using var stream = TestExcelGenerator.CreateTestExcelFile();
@@ -875,23 +748,7 @@ public class ExcelExtractorTests
     }
 
     [Fact]
-    public void ExcelExtractor_ExtractAsJson_ShouldHandleNullValues()
-    {
-        using var stream = TestExcelGenerator.CreateTestExcelFile();
-        var jsonData = new ExcelExtractor()
-            .WithHeader(true)
-            .WithWorksheetIndex(1)
-            .FromStream(stream)
-            .ExtractAsJson<Person>();
-
-        Assert.NotNull(jsonData);
-        Assert.Contains("\"Name\":\"Bob\"", jsonData);
-        Assert.Contains("\"Age\":null", jsonData);
-        Assert.Contains("\"Salary\":null", jsonData);
-    }
-
-    [Fact]
-    public void ExcelExtractor_ExtarctAsXml_ShouldWriteValidXmlFile()
+    public void ExcelExtractorExtensions_SaveAsJson_ShouldReturnValidJson()
     {
         using var stream = TestExcelGenerator.CreateTestExcelFile();
         var extractor = new ExcelExtractor()
@@ -899,29 +756,17 @@ public class ExcelExtractorTests
             .WithWorksheetIndex(1)
             .FromStream(stream);
 
-        var tempFilePath = Path.GetTempFileName();
-        Console.WriteLine($"Temp file path: {tempFilePath}");
+        var data = extractor.Extract<Person>();
+        var json = data.SaveAsJson();
 
-        try
-        {
-            extractor.ExtarctAsXml<Person>(tempFilePath);
-
-            Assert.True(File.Exists(tempFilePath));
-
-            var xmlContent = File.ReadAllText(tempFilePath);
-            Assert.Contains("<Name>Alice</Name>", xmlContent);
-            Assert.Contains("<Age>25</Age>", xmlContent);
-            Assert.Contains("<Salary>50000.75</Salary>", xmlContent);
-            Assert.Contains("<JoinDate>2020-05-01", xmlContent);
-        }
-        finally
-        {
-            File.Delete(tempFilePath);
-        }
+        Assert.NotNull(json);
+        Assert.Contains("\"Name\":\"Alice\"", json);
+        Assert.Contains("\"Age\":25", json);
+        Assert.Contains("\"Salary\":50000.75", json);
     }
 
     [Fact]
-    public void ExcelExtractor_ExtarctAsXlsx_ShouldWriteValidXlsxFile()
+    public void ExcelExtractorExtensions_SaveAsXml_ShouldReturnValidXml()
     {
         using var stream = TestExcelGenerator.CreateTestExcelFile();
         var extractor = new ExcelExtractor()
@@ -929,12 +774,30 @@ public class ExcelExtractorTests
             .WithWorksheetIndex(1)
             .FromStream(stream);
 
+        var data = extractor.Extract<Person>();
+        var xml = data.SaveAsXml();
+
+        Assert.NotNull(xml);
+        Assert.Contains("<Name>Alice</Name>", xml);
+        Assert.Contains("<Age>25</Age>", xml);
+        Assert.Contains("<Salary>50000.75</Salary>", xml);
+    }
+
+    [Fact]
+    public void ExcelExtractorExtensions_SaveAsXlsx_ShouldWriteValidXlsxFile()
+    {
+        using var stream = TestExcelGenerator.CreateTestExcelFile();
+        var extractor = new ExcelExtractor()
+            .WithHeader(true)
+            .WithWorksheetIndex(1)
+            .FromStream(stream);
+
+        var data = extractor.Extract<Person>();
         var tempFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".xlsx");
-        Console.WriteLine($"Temp file path: {tempFilePath}");
 
         try
         {
-            extractor.ExtarctAsXlsx<Person>(tempFilePath);
+            data.SaveAsXlsx(tempFilePath);
 
             Assert.True(File.Exists(tempFilePath));
 
@@ -948,6 +811,49 @@ public class ExcelExtractorTests
             Assert.Equal("Alice", worksheet.Cell(2, 1).GetString());
             Assert.Equal(25, worksheet.Cell(2, 2).GetDouble());
             Assert.Equal(50000.75, worksheet.Cell(2, 3).GetDouble());
+        }
+        finally
+        {
+            File.Delete(tempFilePath);
+        }
+    }
+
+    [Fact]
+    public void ExcelExtractorExtensions_SaveAsXlsx_WithManualMapping_ShouldWriteValidXlsxFile()
+    {
+        using var stream = TestExcelGenerator.CreateTestExcelFile();
+        var extractor = new ExcelExtractor()
+            .WithHeader(true)
+            .WithWorksheetIndex(1)
+            .FromStream(stream);
+
+        var tempFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".xlsx");
+
+        try
+        {
+            var data = extractor.ExtractWithManualMapping(row => new Person
+            {
+                Name = row.Cell(1).GetString()?.ToUpper(),
+                Age = !row.Cell(2).IsEmpty() ? (int)(row.Cell(2).GetDouble() * 2) : null,
+                Salary = !row.Cell(3).IsEmpty() ? (decimal)(row.Cell(3).GetDouble() / 2) : null,
+                JoinDate = row.Cell(4).GetDateTime().AddYears(1),
+                LastActive = !row.Cell(5).IsEmpty() ? row.Cell(5).GetDateTime() : DateTime.Now
+            });
+
+            data.SaveAsXlsx(tempFilePath);
+
+            Assert.True(File.Exists(tempFilePath));
+
+            using var workbook = new XLWorkbook(tempFilePath);
+            var worksheet = workbook.Worksheet(1);
+
+            Assert.Equal("Full Name", worksheet.Cell(1, 1).GetString());
+            Assert.Equal("Age", worksheet.Cell(1, 2).GetString());
+            Assert.Equal("Salary", worksheet.Cell(1, 3).GetString());
+
+            Assert.Equal("ALICE", worksheet.Cell(2, 1).GetString());
+            Assert.Equal(50, worksheet.Cell(2, 2).GetDouble());
+            Assert.Equal(25000.375, worksheet.Cell(2, 3).GetDouble());
         }
         finally
         {
