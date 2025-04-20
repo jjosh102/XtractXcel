@@ -266,6 +266,22 @@ extractor.Extract<Person>().SaveAsXlsx("output.xlsx");
 Console.WriteLine("Data saved to output.xlsx");
 ```
 
+#### Save as XLSX Without Headers
+
+If your data does not have headers, you can save it directly into an XLSX file without adding headers:
+
+```csharp
+using var stream = File.OpenRead("employees-no-header.xlsx");
+var extractor = new ExcelExtractor()
+    .WithHeader(false)
+    .WithWorksheetIndex(1)
+    .FromStream(stream);
+
+var data = extractor.Extract<PersonNoHeader>();
+data.SaveAsXlsxWithoutHeader("output-no-header.xlsx");
+Console.WriteLine("Data saved to output-no-header.xlsx without headers");
+```
+
 #### Save Manually Mapped Data as XLSX
 
 ```csharp

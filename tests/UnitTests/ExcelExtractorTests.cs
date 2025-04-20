@@ -860,4 +860,74 @@ public class ExcelExtractorTests
             File.Delete(tempFilePath);
         }
     }
+
+    [Fact]
+    public void SaveAsXlsxWithoutHeader_ShouldWriteValidXlsxFileWithoutHeaders()
+    {
+        using var stream = TestExcelGenerator.CreateTestExcelFileWithNoHeader();
+        var extractor = new ExcelExtractor()
+            .WithHeader(false)
+            .WithWorksheetIndex(1)
+            .FromStream(stream);
+
+        var data = extractor.Extract<PersonNoHeader>();
+        var tempFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".xlsx");
+
+        try
+        {
+            data.SaveAsXlsxWithoutHeader(tempFilePath);
+
+            Assert.True(File.Exists(tempFilePath));
+
+            using var workbook = new XLWorkbook(tempFilePath);
+            var worksheet = workbook.Worksheet(1);
+
+            Assert.Equal("Dave", worksheet.Cell(1, 1).GetString());
+            Assert.Equal(42, worksheet.Cell(1, 2).GetDouble());
+            Assert.Equal(75000.50, worksheet.Cell(1, 3).GetDouble());
+
+            Assert.Equal("Eve", worksheet.Cell(2, 1).GetString());
+            Assert.Equal(38, worksheet.Cell(2, 2).GetDouble());
+            Assert.Equal(82000.25, worksheet.Cell(2, 3).GetDouble());
+        }
+        finally
+        {
+            File.Delete(tempFilePath);
+        }
+    }
+
+    [Fact]
+    public void SaveAsJson_ShouldThrowArgumentNullException_WhenDataIsNull()
+    {
+        List<Person> data = null!;
+        Assert.Throws<ArgumentNullException>(() => data.SaveAsJson());
+    }
+
+    [Fact]
+    public void SaveAsXml_ShouldThrowArgumentNullException_WhenDataIsNull()
+    {
+        List<Person> data = null!;
+        Assert.Throws<ArgumentNullException>(() => data.SaveAsXml());
+    }
+
+    [Fact]
+    public void SaveAsXml_ShouldThrowArgumentException_WhenFilePathIsInvalid()
+    {
+        var data = new List<Person> { new Person { Name = "Alice" } };
+        Assert.Throws<ArgumentException>(() => data.SaveAsXml(string.Empty));
+    }
+
+    [Fact]
+    public void SaveAsXlsx_ShouldThrowArgumentNullException_WhenDataIsNull()
+    {
+        List<Person> data = null!;
+        Assert.Throws<ArgumentNullException>(() => data.SaveAsXlsx("output.xlsx"));
+    }
+
+    [Fact]
+    public void SaveAsXlsx_ShouldThrowArgumentException_WhenFilePathIsInvalid()
+    {
+        var data = new List<Person> { new Person { Name = "Alice" } };
+        Assert.Throws<ArgumentException>(() => data.SaveAsXlsx(string.Empty));
+    }
 }
