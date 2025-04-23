@@ -10,7 +10,7 @@
     <Description>XtractXcel is a simple .NET library for extracting data from Excel files using
       ClosedXML, transforming it as needed, and loading it into your object.</Description>
     <PackageId>XtractXcel</PackageId>
-    <PackageProjectUrl>https://www.nuget.org/packages/BrowserCache.Extensions</PackageProjectUrl>
+    <PackageProjectUrl>https://www.nuget.org/packages/XtractXcel</PackageProjectUrl>
     <RepositoryUrl>https://github.com/jjosh102/XtractXcel</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
