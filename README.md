@@ -125,7 +125,7 @@ var people = new ExcelExtractor()
 
 ### Supported Data Types
 
-ExcelTransformLoad supports a wide range of data types:
+`XtractXcel` supports a wide range of data types:
 
 - Basic types: `string`, `int`, `decimal`, `double`, `DateTime`
 - Nullable variants: `int?`, `decimal?`, `DateTime?`, etc.
