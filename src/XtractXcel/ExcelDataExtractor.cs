@@ -16,7 +16,7 @@ internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
         return ExcelObjectExtractor<T>.GetCachedExcelColumnProperties();
     }
 
-    internal List<T> ExtractData<T>(string worksheetName, bool readHeader = true)
+    internal List<T> ExtractData<T>(string worksheetName, bool readHeader = true, Action<T>? onRowExtracted = null)
         where T : new()
     {
         var workbook = GetOrCreateWorkbook();
@@ -25,10 +25,10 @@ internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
             throw new ArgumentException($"Worksheet '{worksheetName}' not found", nameof(worksheetName));
         }
 
-        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, readHeader);
+        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, readHeader, onRowExtracted);
     }
 
-    internal List<T> ExtractData<T>(string worksheetName, Func<IXLRangeRow, T> mapRow, bool readHeader = true)
+    internal List<T> ExtractData<T>(string worksheetName, Func<IXLRangeRow, T> mapRow, bool readHeader = true, Action<T>? onRowExtracted = null)
         where T : new()
     {
         var workbook = GetOrCreateWorkbook();
@@ -37,10 +37,10 @@ internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
             throw new ArgumentException($"Worksheet '{worksheetName}' not found", nameof(worksheetName));
         }
 
-        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, mapRow, readHeader);
+        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, mapRow, readHeader, onRowExtracted);
     }
 
-    internal List<T> ExtractData<T>(int worksheetIndex, bool readHeader = true)
+    internal List<T> ExtractData<T>(int worksheetIndex, bool readHeader = true, Action<T>? onRowExtracted = null)
         where T : new()
     {
         var workbook = GetOrCreateWorkbook();
@@ -52,10 +52,10 @@ internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
         }
 
         var worksheet = workbook.Worksheet(worksheetIndex);
-        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, readHeader);
+        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, readHeader, onRowExtracted);
     }
 
-    internal List<T> ExtractData<T>(int worksheetIndex, Func<IXLRangeRow, T> mapRow, bool readHeader = true)
+    internal List<T> ExtractData<T>(int worksheetIndex, Func<IXLRangeRow, T> mapRow, bool readHeader = true, Action<T>? onRowExtracted = null)
         where T : new()
     {
         var workbook = GetOrCreateWorkbook();
@@ -67,6 +67,72 @@ internal sealed class ExcelDataExtractor : ExcelDataExtractorBase
         }
 
         var worksheet = workbook.Worksheet(worksheetIndex);
-        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, mapRow, readHeader);
+        return new ExcelObjectExtractor<T>().ExtractDataFromWorksheet(worksheet, mapRow, readHeader, onRowExtracted);
+    }
+
+    internal Task<List<T>> ExtractDataAsync<T>(
+        string worksheetName,
+        bool readHeader = true,
+        CancellationToken cancellationToken = default,
+        Action<T>? onRowExtracted = null)
+        where T : new()
+    {
+        return Task.Run(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return ExtractData<T>(worksheetName, readHeader, onRowExtracted);
+            },
+            cancellationToken);
+    }
+
+    internal Task<List<T>> ExtractDataAsync<T>(
+        string worksheetName,
+        Func<IXLRangeRow, T> mapRow,
+        bool readHeader = true,
+        CancellationToken cancellationToken = default,
+        Action<T>? onRowExtracted = null)
+        where T : new()
+    {
+        return Task.Run(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return ExtractData(worksheetName, mapRow, readHeader, onRowExtracted);
+            },
+            cancellationToken);
+    }
+
+    internal Task<List<T>> ExtractDataAsync<T>(
+        int worksheetIndex,
+        bool readHeader = true,
+        CancellationToken cancellationToken = default,
+        Action<T>? onRowExtracted = null)
+        where T : new()
+    {
+        return Task.Run(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return ExtractData<T>(worksheetIndex, readHeader, onRowExtracted);
+            },
+            cancellationToken);
+    }
+
+    internal Task<List<T>> ExtractDataAsync<T>(
+        int worksheetIndex,
+        Func<IXLRangeRow, T> mapRow,
+        bool readHeader = true,
+        CancellationToken cancellationToken = default,
+        Action<T>? onRowExtracted = null)
+        where T : new()
+    {
+        return Task.Run(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return ExtractData(worksheetIndex, mapRow, readHeader, onRowExtracted);
+            },
+            cancellationToken);
     }
 }

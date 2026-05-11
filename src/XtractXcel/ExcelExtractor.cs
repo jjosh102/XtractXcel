@@ -55,27 +55,28 @@ public record ExcelExtractor(
         return this with { Stream = stream, FilePath = null };
     }
 
-    public List<T> Extract<T>()
+    public List<T> Extract<T>(Action<T>? onRowExtracted = null)
         where T : new()
     {
         EnsureSourceIsSet();
 
         var options = new ExcelDataSourceOptions { FilePath = FilePath, Stream = Stream };
+        using var extractor = new ExcelDataExtractor(options);
 
         if (WorksheetIndex.HasValue)
         {
-            return new ExcelDataExtractor(options).ExtractData<T>(WorksheetIndex.Value, ReadHeader);
+            return extractor.ExtractData<T>(WorksheetIndex.Value, ReadHeader, onRowExtracted);
         }
 
         if (!string.IsNullOrEmpty(WorksheetName))
         {
-            return new ExcelDataExtractor(options).ExtractData<T>(WorksheetName, ReadHeader);
+            return extractor.ExtractData<T>(WorksheetName, ReadHeader, onRowExtracted);
         }
 
-        return new ExcelDataExtractor(options).ExtractData<T>(1, ReadHeader);
+        return extractor.ExtractData<T>(1, ReadHeader, onRowExtracted);
     }
 
-    public List<T> ExtractWithManualMapping<T>(Func<IXLRangeRow, T> manualMapping)
+    public List<T> ExtractWithManualMapping<T>(Func<IXLRangeRow, T> manualMapping, Action<T>? onRowExtracted = null)
         where T : new()
     {
         EnsureSourceIsSet();
@@ -87,18 +88,67 @@ public record ExcelExtractor(
         }
 
         var options = new ExcelDataSourceOptions { FilePath = FilePath, Stream = Stream };
+        using var extractor = new ExcelDataExtractor(options);
 
         if (WorksheetIndex.HasValue)
         {
-            return new ExcelDataExtractor(options).ExtractData(WorksheetIndex.Value, manualMapping, ReadHeader);
+            return extractor.ExtractData(WorksheetIndex.Value, manualMapping, ReadHeader, onRowExtracted);
         }
 
         if (!string.IsNullOrEmpty(WorksheetName))
         {
-            return new ExcelDataExtractor(options).ExtractData(WorksheetName, manualMapping, ReadHeader);
+            return extractor.ExtractData(WorksheetName, manualMapping, ReadHeader, onRowExtracted);
         }
 
-        return new ExcelDataExtractor(options).ExtractData(1, manualMapping, ReadHeader);
+        return extractor.ExtractData(1, manualMapping, ReadHeader, onRowExtracted);
+    }
+
+    public async Task<List<T>> ExtractAsync<T>(CancellationToken cancellationToken = default, Action<T>? onRowExtracted = null)
+        where T : new()
+    {
+        EnsureSourceIsSet();
+
+        var options = new ExcelDataSourceOptions { FilePath = FilePath, Stream = Stream };
+        using var extractor = new ExcelDataExtractor(options);
+
+        if (WorksheetIndex.HasValue)
+        {
+            return await extractor.ExtractDataAsync<T>(WorksheetIndex.Value, ReadHeader, cancellationToken, onRowExtracted);
+        }
+
+        if (!string.IsNullOrEmpty(WorksheetName))
+        {
+            return await extractor.ExtractDataAsync<T>(WorksheetName, ReadHeader, cancellationToken, onRowExtracted);
+        }
+
+        return await extractor.ExtractDataAsync<T>(1, ReadHeader, cancellationToken, onRowExtracted);
+    }
+
+    public async Task<List<T>> ExtractWithManualMappingAsync<T>(Func<IXLRangeRow, T> manualMapping, CancellationToken cancellationToken = default, Action<T>? onRowExtracted = null)
+        where T : new()
+    {
+        EnsureSourceIsSet();
+
+        if (manualMapping is null)
+        {
+            throw new InvalidOperationException(
+                "A row mapping function must be provided when manual mapping is enabled.");
+        }
+
+        var options = new ExcelDataSourceOptions { FilePath = FilePath, Stream = Stream };
+        using var extractor = new ExcelDataExtractor(options);
+
+        if (WorksheetIndex.HasValue)
+        {
+            return await extractor.ExtractDataAsync(WorksheetIndex.Value, manualMapping, ReadHeader, cancellationToken, onRowExtracted);
+        }
+
+        if (!string.IsNullOrEmpty(WorksheetName))
+        {
+            return await extractor.ExtractDataAsync(WorksheetName, manualMapping, ReadHeader, cancellationToken, onRowExtracted);
+        }
+
+        return await extractor.ExtractDataAsync(1, manualMapping, ReadHeader, cancellationToken, onRowExtracted);
     }
 
     private void EnsureSourceNotSet()
@@ -110,6 +160,11 @@ public record ExcelExtractor(
         }
     }
 
+    public static void ClearCache()
+    {
+        ExcelObjectExtractorCache.Clear();
+    }
+
     private void EnsureSourceIsSet()
     {
         if (FilePath is null && Stream is null)
@@ -117,5 +172,4 @@ public record ExcelExtractor(
             throw new InvalidOperationException("Data source (file or stream) is required before extraction.");
         }
     }
-
 }

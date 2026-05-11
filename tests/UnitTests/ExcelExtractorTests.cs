@@ -695,7 +695,7 @@ public class ExcelExtractorTests
             .WithWorksheetIndex(1)
             .FromStream(stream);
 
-        Assert.Throws<InvalidOperationException>(() => extractor.Extract<PersonWithGuidAndEnum>());
+        Assert.Throws<ExcelExtractionException>(() => extractor.Extract<PersonWithGuidAndEnum>());
     }
 
     [Fact]

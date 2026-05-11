@@ -97,7 +97,6 @@ public static class ExcelDataExtractorExtensions
                 worksheet.Cell(1, i + 1).Value = propertiesWithAttributes[i].Attribute.ColumnNames.FirstOrDefault() ?? propertiesWithAttributes[i].Property.Name;
             }
 
-            // Add data starting from cell A2, below the header
             worksheet.Cell(2, 1).InsertData(data);
             workbook.SaveAs(filePath);
         }
@@ -125,7 +124,6 @@ public static class ExcelDataExtractorExtensions
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add();
 
-            // Add data starting from cell A1 without headers
             worksheet.Cell(1, 1).InsertData(data);
             workbook.SaveAs(filePath);
         }
